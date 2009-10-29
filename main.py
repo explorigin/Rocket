@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import re
 import sys
 import socket
 import logging
@@ -25,7 +24,7 @@ class Rocket:
         self._worker = get_method(method)
 
         self._worker.app_info = app_info
-        self._worker.port = bind_addr[1]
+        self._worker.stopServer = False
         self._worker.min_threads = min_threads
         self._worker.max_threads = max_threads
         self._worker.timeout = timeout
@@ -63,7 +62,7 @@ class Rocket:
         self.socket.listen(socket.SOMAXCONN)
 
         try:
-            while True:
+            while not self._worker.stopServer:
                 try:
                     if select([self.socket], [], [], 1.0)[0]:
                         self._worker.queue.put(self.socket.accept())
@@ -72,18 +71,25 @@ class Rocket:
                 except Exception:
                     logging.warn(str(traceback.format_exc()))
                     continue
-        except Exception:
-            logging.warn(str(traceback.format_exc()))
-            return self.stop()
+        except:
+            logging.error(str(traceback.format_exc()))
+        return self.stop()
 
     def stop(self):
         logging.info("Stopping Server")
+        break_loop = 10
+
         for t in range(len(self._worker.threads)):
             self._worker.queue.put((None,None))
 
-        while len(self._worker.threads):
+        while len(self._worker.threads) and break_loop != 0:
             try:
                 if 'client_socket' in self._worker.threads:
+                    logging.debug("Shutting down client on thread")
                     self._worker.threads.client_socket.shutdown(socket.SHUT_RDWR)
+                else:
+                    logging.warning("'client' not in thread")
+                    break_loop -= 1
             except:
-                pass
+                logging.warning(traceback.format_exc())
+                break_loop -= 1
