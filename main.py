@@ -21,17 +21,18 @@ class Rocket:
         self.address = bind_addr[0]
         self.port = bind_addr[1]
 
-        self._worker = get_method(method)
+        self._worker = W = get_method(method)
 
-        self._worker.app_info = app_info
-        self._worker.stopServer = False
-        self._worker.min_threads = min_threads
-        self._worker.max_threads = max_threads
-        self._worker.timeout = timeout
-        self._worker.threads.update([self._worker() for k in range(min_threads)])
+        W.app_info = app_info
+        W.stopServer = False
+        W.min_threads = min_threads
+        W.max_threads = max_threads
+        W.timeout = timeout
+        W.threads = set([W() for k in range(min_threads)])
 
     def start(self):
         for thread in self._worker.threads:
+            thread.daemon = True
             thread.start()
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -78,18 +79,20 @@ class Rocket:
     def stop(self):
         logging.info("Stopping Server")
         break_loop = 10
+        W = self._worker
 
-        for t in range(len(self._worker.threads)):
-            self._worker.queue.put((None,None))
+        for t in range(len(W.threads)):
+            W.queue.put((None,None))
 
-        while len(self._worker.threads) and break_loop != 0:
+        while len(W.threads) and break_loop != 0:
             try:
-                if 'client_socket' in self._worker.threads:
+                if 'client_socket' in W.threads:
                     logging.debug("Shutting down client on thread")
-                    self._worker.threads.client_socket.shutdown(socket.SHUT_RDWR)
+                    W.threads.client_socket.shutdown(socket.SHUT_RDWR)
                 else:
-                    logging.warning("'client' not in thread")
+                    logging.debug("'client' not in thread")
                     break_loop -= 1
             except:
-                logging.warning(traceback.format_exc())
+                logging.warning('Failed to stop thread: \n'
+                                + traceback.format_exc())
                 break_loop -= 1
