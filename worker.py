@@ -57,7 +57,8 @@ class Worker(Thread):
                         break
                 except:
                     logging.warn(str(traceback.format_exc()))
-                    client.sendall(ERROR_RESPONSE.format('500 Server Error').encode())
+                    err = ERROR_RESPONSE.format('500 Server Error').encode()
+                    client.sendall(err)
                     break
 
             sock_file.close()
