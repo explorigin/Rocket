@@ -2,5 +2,6 @@
 
 import sys
 VERSION = '0.1'
-_data = (VERSION, sys.version.split(' ')[0])
-SERVER_NAME = 'Rocket {0} Python/{1}'.format(*_data)
+SERVER_NAME = 'Rocket {0}'.format(VERSION)
+HTTP_SERVER_NAME = '{0} Python/{1}'.format(SERVER_NAME,
+                                           sys.version.split(' ')[0])

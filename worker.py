@@ -10,11 +10,10 @@ try: from queue import Queue
 except ImportError: from Queue import Queue
 from threading import Thread
 from email.utils import formatdate
-
 from . import SERVER_NAME
 
 BUF_SIZE = 10000
-
+py3k = sys.version_info[0] > 2
 ERROR_RESPONSE = '''\
 HTTP/1.0 {0}
 Content-Length: 0
@@ -22,11 +21,6 @@ Content-Type: text/plain
 
 {0}
 '''
-HEADER_RESPONSE = '''\
-HTTP/1.0 {0}
-{1}
-'''
-py3k = sys.version_info[0] > 2
 
 class Worker(Thread):
     # Web worker base class.
@@ -35,31 +29,47 @@ class Worker(Thread):
     app_info = None
     min_threads = 10
     max_threads = 10
+    timeout = 10
 
     def run(self):
-        while True:
+        self.name = self.getName()
+        self.log = logging.getLogger('Rocket.{0}'.format(self.name))
+        try:
+            self.log.addHandler(logging.NullHandler())
+        except:
+            pass
+        self.log.debug('Entering main loop.')
 
+        # Enter thread main loop
+        while True:
             client, addr = self.queue.get()
             self.client, self.client_address = client, addr
 
             if not client:
                 # A non-client is a signal to die
+                self.log.debug('Received a death threat.')
                 return self.threads.remove(self)
 
-            if hasattr(client,'settimeout'):
+            self.log.debug('Received a connection.')
+
+            if hasattr(client,'settimeout') and self.timeout:
                 client.settimeout(self.timeout)
 
-            while True:
+            self.closeConnection = False
+
+            # Enter connection serve loop
+            while not self.closeConnection:
+                self.log.debug('Serving a request')
                 sock_file = client.makefile('rb',BUF_SIZE)
                 try:
-                    data_items = self.run_app({}, sock_file)
-                    if self.respond(data_items):
-                        break
+                    self.run_app(sock_file)
                 except:
                     logging.warn(str(traceback.format_exc()))
-                    err = ERROR_RESPONSE.format('500 Server Error').encode()
+                    err = ERROR_RESPONSE.format('500 Server Error')
+                    if py3k and isinstance(err, str):
+                        err = str.encode()
                     client.sendall(err)
-                    break
+                    self.closeConnection = True
 
             sock_file.close()
 
@@ -70,37 +80,10 @@ class Worker(Thread):
 
             self.resize_thread_pool()
 
-    def run_app(self, environ, sock_file):
-        # Must be overridden with a method that sets self.status and
-        # self.headers and return an iteratable that yields bytes.
+    def run_app(self, sock_file):
+        # Must be overridden with a method reads the request from the socket
+        # and sends a response.
         pass
-
-    def send_data(self, data_bytes):
-        if py3k and isinstance(data_bytes, str):
-            self.client.sendall(bytes(data_bytes, 'ISO-8859-1'))
-        else:
-            self.client.sendall(data_bytes)
-
-    def respond(self, data_items):
-        headers = self.headers
-        header_dict = dict([(x.lower(),y.strip()) for (x,y) in headers])
-        if not 'date' in header_dict:
-            headers.append(('Date',formatdate(usegmt=True)))
-        if not 'server' in header_dict:
-            headers.append(('Server', SERVER_NAME))
-        headers.append(('Connection','close'))
-        break_loop = True
-        serialized_headers = \
-            ''.join(['%s: %s\r\n' % (k,v) for (k,v) in headers])
-        data = HEADER_RESPONSE.format(self.status, serialized_headers)
-        self.send_data(data)
-        for data in data_items:
-            try:
-                self.send_data(data)
-            except socket.error as e:
-                if e.args[0] not in socket_errors_to_ignore:
-                    raise
-        return break_loop
 
     def resize_thread_pool(self):
         if self.max_threads > self.min_threads:
@@ -117,17 +100,24 @@ class Worker(Thread):
                     new_worker.start()
 
 class TestWorker(Worker):
-    def run_app(self, environ, sock_file):
-        first_line = sock_file.readline().decode('ISO-8859-1')
-        request = first_line.split(' ')
+    HEADER_RESPONSE = '''HTTP/1.0 {0}\r\n{1}\r\n'''
 
-        path_info = request[1]
+    def run_app(self, sock_file):
+        self.closeConnection = True
+        n = sock_file.readline().strip()
+        while n:
+            self.log.debug(n)
+            n = sock_file.readline().strip()
 
-        file_path = os.path.abspath(os.path.normpath(path_info))
+        response = self.HEADER_RESPONSE.format('200 OK',
+                                               'Content-type: text/html')
+        response += '\r\n<h1>It Works!</h1>'
 
-        self.status = '200 OK'
-        self.headers = [('Content-type','text/html')]
-        return ['<h1>It Works!</h1>']
+        if py3k:
+            response = response.encode()
+
+        self.log.debug(response)
+        self.client.sendall(response)
 
 def get_method(method):
     from .methods.file import FileWorker
