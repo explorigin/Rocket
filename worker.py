@@ -2,18 +2,14 @@
 
 import os
 import sys
-import errno
 import socket
 import logging
 import traceback
 try: from queue import Queue
 except ImportError: from Queue import Queue
 from threading import Thread
-from email.utils import formatdate
-from . import SERVER_NAME
+from . import SERVER_NAME, b
 
-BUF_SIZE = 10000
-py3k = sys.version_info[0] > 2
 ERROR_RESPONSE = '''\
 HTTP/1.0 {0}
 Content-Length: 0
@@ -30,6 +26,8 @@ class Worker(Thread):
     min_threads = 10
     max_threads = 10
     timeout = 10
+    server_name = SERVER_NAME
+    server_port = 80
 
     def run(self):
         self.name = self.getName()
@@ -60,23 +58,18 @@ class Worker(Thread):
             # Enter connection serve loop
             while not self.closeConnection:
                 self.log.debug('Serving a request')
-                sock_file = client.makefile('rb',BUF_SIZE)
                 try:
-                    self.run_app(sock_file)
+                    self.run_app(client)
+                except socket.timeout:
+                    logging.debug('Socket timed out')
+                    # TODO - implement secondary queue for long-waiting sockets
+                    break
                 except:
                     logging.warn(str(traceback.format_exc()))
                     err = ERROR_RESPONSE.format('500 Server Error')
-                    if py3k and isinstance(err, str):
-                        err = str.encode()
-                    client.sendall(err)
-                    self.closeConnection = True
-
-            sock_file.close()
+                    client.sendall(b(err))
 
             client.close()
-            # client.close does not fully close until it is garbage collected
-            # FIXME - find a way to close it NOW instead of waiting on the gc
-            #del client
 
             self.resize_thread_pool()
 
@@ -102,8 +95,9 @@ class Worker(Thread):
 class TestWorker(Worker):
     HEADER_RESPONSE = '''HTTP/1.0 {0}\r\n{1}\r\n'''
 
-    def run_app(self, sock_file):
+    def run_app(self, client):
         self.closeConnection = True
+        sock_file = client.makefile('rb',BUF_SIZE)
         n = sock_file.readline().strip()
         while n:
             self.log.debug(n)
@@ -116,12 +110,17 @@ class TestWorker(Worker):
         if py3k:
             response = response.encode()
 
-        self.log.debug(response)
-        self.client.sendall(response)
+        try:
+            self.log.debug(response)
+            client.sendall(response)
+        finally:
+            sock_file.close()
 
 def get_method(method):
     from .methods.file import FileWorker
+    from .methods.wsgi import WSGIWorker
     methods = dict(file=FileWorker,
-                   test=TestWorker)
+                   test=TestWorker,
+                   wsgi=WSGIWorker)
 
     return methods.get(method.lower(), TestWorker)

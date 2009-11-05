@@ -36,6 +36,8 @@ class Rocket:
         self._worker = W = get_method(method)
 
         W.app_info = app_info
+        W.server_name = SERVER_NAME
+        W.server_port = self.port
         W.stopServer = False
         W.min_threads = min_threads
         W.max_threads = max_threads
@@ -120,7 +122,7 @@ class Rocket:
             try:
                 if 'client_socket' in W.threads:
                     log.debug("Shutting down client on thread")
-                    W.threads.client_socket.shutdown(socket.SHUT_RDWR)
+                    W.threads.client.shutdown(socket.SHUT_RDWR)
                 else:
                     break_loop -= 1
             except:
