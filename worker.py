@@ -8,10 +8,18 @@ import traceback
 try: from queue import Queue
 except ImportError: from Queue import Queue
 from threading import Thread
+try:
+    from io import StringIO
+except ImportError:
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+
 from . import SERVER_NAME, b
 
 ERROR_RESPONSE = '''\
-HTTP/1.0 {0}
+HTTP/1.1 {0}
 Content-Length: 0
 Content-Type: text/plain
 
@@ -92,8 +100,47 @@ class Worker(Thread):
                     Worker.threads.add(new_worker)
                     new_worker.start()
 
+class ChunkedReader:
+    def __init__(self, sock_file):
+        self.stream = sock_file
+        self.buffer = None
+        self.buffer_size = 0
+
+    def _read_chunk(self):
+        if not self.buffer or self.buffer.tell() == self.buffer_size:
+            try:
+                self.buffer_size = int(self.stream.readline().strip(), 16)
+            except ValueError:
+                self.buffer_size = 0
+
+            if self.buffer_size:
+                self.buffer = StringIO(self.stream.read(self.buffer_size))
+
+    def read(self, size):
+        data = b('')
+        while size:
+            self._read_chunk()
+            if not self.buffer_size:
+                break
+            read_size = min(size, self.buffer_size)
+            data += self.buffer.read(read_size)
+            size -= read_size
+        return data
+
+    def readline(self):
+        data = b('')
+        c = self.read(1)
+        while c != b('\n') or c == b(''):
+            data += c
+            c = self.read(1)
+        data += c
+        return data
+
+    def readlines(self):
+        yield self.readline()
+
 class TestWorker(Worker):
-    HEADER_RESPONSE = '''HTTP/1.0 {0}\r\n{1}\r\n'''
+    HEADER_RESPONSE = '''HTTP/1.1 {0}\r\n{1}\r\n'''
 
     def run_app(self, client):
         self.closeConnection = True

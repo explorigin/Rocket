@@ -6,7 +6,7 @@ import logging
 from email.utils import formatdate
 from wsgiref.util import FileWrapper
 from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE
-from ..worker import Worker
+from ..worker import Worker, ChunkedReader
 
 STATUS_LINE = 'Status: {0}\r\n'
 HEADER_LINE = '{0}: {1}\r\n'
@@ -50,8 +50,9 @@ class WSGIWorker(Worker):
         environ['SERVER_NAME'] = self.server_name
         environ['SERVER_PORT'] = self.server_port
 
+        self.request_method = environ['REQUEST_METHOD'].upper()
+
         # Add WSGI Variables
-        environ['wsgi.input'] = sock_file
         environ['wsgi.errors'] = sys.stderr
         environ['wsgi.version'] = (1,0)
         environ['wsgi.multithread'] = self.max_threads == 1
@@ -59,6 +60,11 @@ class WSGIWorker(Worker):
         environ['wsgi.run_once'] = False
         environ['wsgi.url_scheme'] = u(line_one[2].split(b('/'))[0]).lower()
         environ['wsgi.file_wrapper'] = FileWrapper
+
+        if lower_headers.get('transfer_encoding', '').lower() == 'chunked':
+            environ['wsgi.input'] = ChunkedReader(sock_file)
+        else:
+            environ['wsgi.input'] = sock_file
 
         # Add HTTP Headers
         environ.update(headers)
@@ -95,6 +101,10 @@ class WSGIWorker(Worker):
             elif not self.header_sent:
                 # Before the first output, send the stored headers
                 header_dict = dict([(x.lower(), y) for (x,y) in self.header_set])
+
+                chunked = header_dict.get(u('transfer-encoding'), '').lower()
+                self.chunked = chunked == u('chunked')
+
                 if not b('date') in header_dict:
                     self.header_set.append(('Date',
                                              formatdate(usegmt=True)))
@@ -103,15 +113,19 @@ class WSGIWorker(Worker):
                     self.header_set.append(('Server',
                                              HTTP_SERVER_NAME))
 
-                if not b('content-length') in header_dict and sections == 1:
-                    self.header_set.append(('Content-Length', len(data)))
-
-                # TODO - add support for chunked encoding
+                if not b('content-length') in header_dict and not chunked:
+                    if sections == 1:
+                        self.header_set.append(('Content-Length', len(data)))
+                    elif sections != None and section > 1:
+                        self.header_set.append(('Transfer-Encoding', 'Chunked'))
+                        chunked = True
 
                 # If the client or application asks to keep the connection
                 # alive, do so.
-                if header_dict.get(u('connection'), '').lower() == u('keep-alive')\
-                        or self.lower_headers.get(u('connection'), '').lower() == u('keep-alive'):
+                if header_dict.get(u('connection'), '').lower() == \
+                        u('keep-alive') or \
+                        self.lower_headers.get(u('connection'), '').lower() ==\
+                        u('keep-alive'):
                     self.header_set.append(('Connection', 'keep-alive'))
                     self.closeConnection = False
                 else:
@@ -127,8 +141,13 @@ class WSGIWorker(Worker):
                 self.header_sent = self.header_set
 
             log.debug('Sending Data: {0}'.format(data.__repr__()))
-            if environ['REQUEST_METHOD'].upper() != u('HEAD'):
-                self.client.sendall(data)
+            if self.request_method != u('HEAD'):
+                if self.chunked:
+                    self.client.sendall(b('{0:x}\r\n'.format(len(data))))
+                    self.client.sendall(data)
+                    self.client.sendall(b('\r\n'))
+                else:
+                    self.client.sendall(data)
 
         def start_response(status, response_headers, exc_info=None):
             if exc_info:
@@ -163,10 +182,15 @@ class WSGIWorker(Worker):
         try:
             sections = len(result)
             for data in result:
-                if data:    # don't send headers until body appears
+                # Don't send headers until body appears
+                if data:
                     write(data, sections)
+            # If chunked, send our final chunk length
+            if self.chunked:
+                self.client.sendall(b('0\r\n'))
+            # Send headers now if body was empty
             if not self.header_sent:
-                write('')   # send headers now if body was empty
+                write('')
         finally:
             if hasattr(result,'close'):
                 result.close()
