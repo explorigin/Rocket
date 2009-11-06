@@ -137,7 +137,6 @@ class WSGIWorker(Worker):
                 header_data = HEADER_RESPONSE.format(self.status,
                                                      serialized_headers)
                 self.client.sendall(b(header_data))
-                self.client.sendall(NEWLINE)
                 self.header_sent = self.header_set
 
             log.debug('Sending Data: {0}'.format(data.__repr__()))
@@ -199,7 +198,8 @@ class WSGIWorker(Worker):
 
 def TestApp(environ, start_response):
     status = '200 OK'
-    data = b('<h1>WSGI Works!</h1>')
-    response_headers = [('Content-type', 'text/html')]
+    data = [b('<h1>WSGI Works!</h1>'),
+            b('<h2>Chunked Transfer-Encoding Works!</h2>')]
+    response_headers = [('Content-type', 'text/html'), ('Transfer-Encoding', 'Chunked')]
     start_response(status, response_headers)
-    return [data]
+    return data
