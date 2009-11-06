@@ -16,7 +16,7 @@ def b(n):
     else:
         return n
 
-def u(n, encoding="US-ASCII"):
+def u(n, encoding="us-ascii"):
     """ Convert bytes into string/unicode.  This allows for the
     same code to run on Python 2.6 and Py3k. """
     if (py3k and isinstance(n, bytes)) or (not py3k and isinstance(n, str)):

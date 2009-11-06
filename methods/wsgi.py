@@ -11,7 +11,7 @@ from ..worker import Worker
 STATUS_LINE = 'Status: {0}\r\n'
 HEADER_LINE = '{0}: {1}\r\n'
 NEWLINE = b('\r\n')
-HEADER_RESPONSE = '''HTTP/1.0 {0}\r\n{1}\r\n'''
+HEADER_RESPONSE = '''HTTP/1.1 {0}\r\n{1}\r\n'''
 
 log = logging.getLogger('Rocket.WSGI')
 
@@ -22,14 +22,20 @@ class WSGIWorker(Worker):
 
         # Grab the headers
         headers = dict()
-        upper_headers = dict() # HTTP headers are not case sensitive
+        lower_headers = dict() # HTTP headers are not case sensitive
         l = sock_file.readline()
         while l.strip():
-            l = u(l, 'ISO-8859-1').split(u(':'), 1)
-            lname = u('HTTP_') + l[0].strip() # HTTP header are ISO-8859-1 encoded
-            lval = l[-1].strip()
-            headers.update({lname: lval})
-            upper_headers.update({lname.upper():lval})
+            try:
+                # HTTP header values are latin-1 encoded
+                l = u(l, 'latin-1').split(u(':'), 1)
+                # HTTP header names are us-ascii encoded
+                lname = u(u('HTTP_') + l[0].strip(), 'us-ascii')
+                lval = l[-1].strip()
+
+                headers.update({lname: lval})
+                lower_headers.update({lname.lower():lval})
+            except UnicodeDecodeError:
+                log.error('Client sent invalid header: ' + l.__repr__())
 
             l = sock_file.readline()
 
@@ -38,7 +44,7 @@ class WSGIWorker(Worker):
 
         # Add CGI Variables
         environ['REQUEST_METHOD'] = u(line_one[0])
-        environ['PATH_INFO'] = u(line_one[1])
+        environ['PATH_INFO'] = u(line_one[1], 'latin-1')
         environ['SERVER_PROTOCOL'] = u(line_one[2])
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
         environ['SERVER_NAME'] = self.server_name
@@ -60,17 +66,17 @@ class WSGIWorker(Worker):
         # Finish WSGI Variables
         if b('?') in line_one[1]:
             environ['QUERY_STRING'] = line_one[1].split(b('?'), 1)[-1]
-        if 'HTTP_CONTENT_LENGTH' in upper_headers:
-            environ['CONTENT_LENGTH'] = upper_headers['HTTP_CONTENT_LENGTH']
-        if 'HTTP_CONTENT_TYPE' in upper_headers:
-            environ['CONTENT_TYPE'] = upper_headers['HTTP_CONTENT_TYPE']
+        if 'http_content_length' in lower_headers:
+            environ['CONTENT_LENGTH'] = lower_headers['http_content_length']
+        if 'http_content_type' in lower_headers:
+            environ['content_type'] = lower_headers['http_content_type']
 
-        self.upper_headers = upper_headers
+        self.lower_headers = lower_headers
 
         # DEBUG
-        log.debug("Request environment: ")
-        for h in environ:
-            log.debug("{0}: {1}".format(h, environ[h]))
+        #log.debug("Request environment: ")
+        #for h in environ:
+        #    log.debug("{0}: {1}".format(h, environ[h]))
 
         return environ
 
@@ -102,30 +108,34 @@ class WSGIWorker(Worker):
 
                 # TODO - add support for chunked encoding
 
-                # If the client asks to keep the connection alive, do so.
-                # TODO - Add support for the application to determine keep-alive
-                if self.upper_headers.get(u('Connection'), b('close')).lower() == b('keep-alive'):
+                # If the client or application asks to keep the connection
+                # alive, do so.
+                if header_dict.get(u('connection'), '').lower() == u('keep-alive')\
+                        or self.lower_headers.get(u('connection'), '').lower() == u('keep-alive'):
                     self.header_set.append(('Connection', 'keep-alive'))
                     self.closeConnection = False
                 else:
                     self.header_set.append(('Connection', 'close'))
                     self.closeConnection = True
 
-                serialized_headers = ''.join([HEADER_LINE.format(k,v) for (k,v) in self.header_set])
-                header_data = HEADER_RESPONSE.format(self.status, serialized_headers)
+                serialized_headers = ''.join([HEADER_LINE.format(k,v)
+                                              for (k,v) in self.header_set])
+                header_data = HEADER_RESPONSE.format(self.status,
+                                                     serialized_headers)
                 self.client.sendall(b(header_data))
                 self.client.sendall(NEWLINE)
                 self.header_sent = self.header_set
 
-            log.debug('Sending: {0}'.format(data.__repr__()))
-            self.client.sendall(data)
+            log.debug('Sending Data: {0}'.format(data.__repr__()))
+            if environ['REQUEST_METHOD'].upper() != u('HEAD'):
+                self.client.sendall(data)
 
         def start_response(status, response_headers, exc_info=None):
             if exc_info:
                 try:
                     if self.header_sent:
                         # Re-raise original exception if headers sent
-                        # because this violates WSGI spec.
+                        # because this violates WSGI specification.
                         raise
 
                 finally:
@@ -134,7 +144,15 @@ class WSGIWorker(Worker):
                 raise AssertionError("Headers already set!")
 
             self.status = status
-            self.header_set = response_headers
+            # Make sure headers are bytes objects
+            try:
+                self.header_set = [(u(h[0], 'us-ascii').strip(),
+                                    u(h[1], 'latin-1').strip())
+                    for h in response_headers]
+
+            except UnicodeDecodeError:
+                raise TypeError('HTTP Headers should be bytes')
+
             return write
 
         if isinstance(self.app_info, dict):
