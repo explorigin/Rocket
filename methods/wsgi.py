@@ -60,7 +60,7 @@ class WSGIWorker(Worker):
                 headers.update({lname: lval})
                 lower_headers.update({lname.lower():lval})
             except UnicodeDecodeError:
-                log.error('Client sent invalid header: ' + l.__repr__())
+                log.warning('Client sent invalid header: ' + l.__repr__())
 
             l = sock_file.readline()
 
@@ -107,6 +107,10 @@ class WSGIWorker(Worker):
 
     def write(self, data, sections=None):
         """ Write the data to the output socket. """
+
+        if self.error[0]:
+            self.status = self.error[0]
+            data = b(self.error[1])
 
         if not self.headers_sent:
             # Before the first output, send the stored headers
@@ -188,13 +192,15 @@ class WSGIWorker(Worker):
                                 u(h[1], 'latin-1').strip())
                 for h in response_headers]
         except UnicodeDecodeError:
-            raise TypeError('HTTP Headers should be bytes')
+            self.error = ('400 Bad Request', 'HTTP Headers should be bytes')
+            log.warning('Received non-byte HTTP Headers from client.')
 
         return self.write_warning
 
     def run_app(self, client):
         self.header_set = []
         self.headers_sent = False
+        self.error = (None, None)
 
         # Do our prep work
         if self.first_run:
@@ -209,8 +215,9 @@ class WSGIWorker(Worker):
         # Send it to our WSGI application
         output = self.app(environ, self.start_response)
         if isinstance(output, (str, bytes)):
-            raise TypeError('WSGI applications must return a list or '
-                            'generator type.')
+            self.error = ('500 Internal Server Error',
+                          'WSGI applications must return a list or generator '
+                          'type.')
 
         try:
             sections = len(output)
