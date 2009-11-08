@@ -23,12 +23,11 @@ class Rocket:
     dispatching connections."""
 
     def __init__(self,
-                 app_info,
-                 method='test',
                  bind_addr = ('127.0.0.1', 8000),
+                 method='test',
+                 app_info = None,
                  max_threads = 0,
-                 min_threads = 10,
-                 timeout = 10):
+                 min_threads = 10):
 
         self.address = bind_addr[0]
         self.port = bind_addr[1]
@@ -41,7 +40,7 @@ class Rocket:
         W.stopServer = False
         W.min_threads = min_threads
         W.max_threads = max_threads
-        W.timeout = timeout
+        W.timeout = max_threads * 0.2
         W.threads = set([W() for k in range(min_threads)])
 
     def start(self):
@@ -79,7 +78,7 @@ class Rocket:
             self.socket.bind((self.address,int(self.port)))
         except:
             msg = "Socket {0}:{1} in use by other process and it won't share."
-            log.error(msg)
+            log.error(msg.format(self.address, self.port))
             sys.exit(1)
         self.socket.listen(socket.SOMAXCONN)
 

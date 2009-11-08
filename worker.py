@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# Import System Modules
 import os
 import sys
 import socket
@@ -15,9 +16,12 @@ except ImportError:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
-
+# Import 3rd Party Modules
+### None ###
+# Import Custom Modules
 from . import SERVER_NAME, b
 
+# Define Constants
 ERROR_RESPONSE = '''\
 HTTP/1.1 {0}
 Content-Length: 0
@@ -33,7 +37,7 @@ class Worker(Thread):
     app_info = None
     min_threads = 10
     max_threads = 10
-    timeout = 10
+    timeout = 1
     server_name = SERVER_NAME
     server_port = 80
 
@@ -64,20 +68,30 @@ class Worker(Thread):
             self.closeConnection = False
 
             # Enter connection serve loop
-            while not self.closeConnection:
+            while True:
                 self.log.debug('Serving a request')
                 try:
-                    self.run_app(client)
+                    self.run_app(client, addr)
+                    if self.closeConnection:
+                        client.close()
+                        break
                 except socket.timeout:
-                    logging.debug('Socket timed out')
-                    # TODO - implement secondary queue for long-waiting sockets
+                    self.log.debug('Socket timed out')
+                    self.queue.put((client, addr))
+                    break
+                except socket.error:
+                    self.log.debug('Client closed socket.')
+                    client.close()
                     break
                 except:
-                    logging.warn(str(traceback.format_exc()))
+                    self.log.error(str(traceback.format_exc()))
                     err = ERROR_RESPONSE.format('500 Server Error')
-                    client.sendall(b(err))
-
-            client.close()
+                    try:
+                        client.sendall(b(err))
+                    except socket.error:
+                        self.log.debug('Could not send error message. Closing socket.')
+                        client.close()
+                        break
 
             self.resize_thread_pool()
 
