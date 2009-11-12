@@ -140,9 +140,13 @@ class WSGIWorker(Worker):
 
         # If the client or application asks to keep the connection
         # alive, do so unless data is chunked (which don't play well together)
+        #
+        # They don't "play well together" because the only way to flush a
+        # socket buffer is to close the connection.  So in the case of a
+        # chunked send, we always close the connection afterward.
         conn = header_dict.get(u('connection'), '').lower()
-        http_conn = self.lower_headers.get(u('http_connection'), '').lower()
-        if conn != u('close') and http_conn == u('keep-alive'):
+        client_conn = self.lower_headers.get(u('http_connection'), '').lower()
+        if conn != u('close') and client_conn == u('keep-alive'):
             if self.chunked:
                 if conn == u('keep-alive'):
                     # remove the keep-alive header
