@@ -49,8 +49,7 @@ class Rocket:
         W.threads = set([W() for k in range(min_threads)])
 
     def start(self):
-        msg = 'Starting {0}'
-        log.info(msg.format(SERVER_NAME))
+        log.info('Starting %s' % SERVER_NAME)
 
         # Set up our shutdown signals
         try:
@@ -76,8 +75,8 @@ class Rocket:
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         except:
-            msg = "Cannot share socket.  Using {0}:{1} exclusively."
-            log.warning(msg.format(self.address, self.port))
+            msg = "Cannot share socket.  Using %s:%s exclusively."
+            log.warning(msg % (self.address, self.port))
         try:
             self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except:
@@ -86,14 +85,14 @@ class Rocket:
         try:
             self.socket.bind((self.address,int(self.port)))
         except:
-            msg = "Socket {0}:{1} in use by other process and it won't share."
-            log.error(msg.format(self.address, self.port))
+            msg = "Socket %s:%s in use by other process and it won't share."
+            log.error(msg % (self.address, self.port))
             sys.exit(1)
         self.socket.listen(socket.SOMAXCONN)
 
         try:
-            msg = 'Listening on socket: {0}:{1}'
-            log.info(msg.format(self.address, self.port))
+            msg = 'Listening on socket: %s:%s'
+            log.info(msg % (self.address, self.port))
             while not self._worker.stopServer:
                 try:
                     if select([self.socket], [], [], 1.0)[0]:

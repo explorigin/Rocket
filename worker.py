@@ -25,11 +25,11 @@ from . import SERVER_NAME, b
 
 # Define Constants
 ERROR_RESPONSE = '''\
-HTTP/1.1 {0}
+HTTP/1.1 %s
 Content-Length: 0
 Content-Type: text/plain
 
-{0}
+%s
 '''
 
 class Worker(Thread):
@@ -47,7 +47,7 @@ class Worker(Thread):
 
     def run(self):
         self.name = self.getName()
-        self.log = logging.getLogger('Rocket.{0}'.format(self.name))
+        self.log = logging.getLogger('Rocket.%s' % self.name)
         try:
             self.log.addHandler(logging.NullHandler())
         except:
@@ -93,7 +93,7 @@ class Worker(Thread):
                     break
                 except:
                     self.log.error(str(traceback.format_exc()))
-                    err = ERROR_RESPONSE.format('500 Server Error')
+                    err = ERROR_RESPONSE % ('500 Server Error', 'Server Error')
                     try:
                         client.sendall(b(err))
                     except socket.error:
@@ -165,7 +165,7 @@ class ChunkedReader:
         yield self.readline()
 
 class TestWorker(Worker):
-    HEADER_RESPONSE = '''HTTP/1.1 {0}\r\n{1}\r\n'''
+    HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
 
     def run_app(self, client):
         self.closeConnection = True
@@ -175,8 +175,7 @@ class TestWorker(Worker):
             self.log.debug(n)
             n = sock_file.readline().strip()
 
-        response = self.HEADER_RESPONSE.format('200 OK',
-                                               'Content-type: text/html')
+        response = self.HEADER_RESPONSE % ('200 OK', 'Content-type: text/html')
         response += '\r\n<h1>It Works!</h1>'
 
         if py3k:

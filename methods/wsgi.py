@@ -15,10 +15,9 @@ from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE
 from ..worker import Worker, ChunkedReader
 
 # Define Constants
-STATUS_LINE = 'Status: {0}\r\n'
-HEADER_LINE = '{0}: {1}\r\n'
+HEADER_LINE = '%s: %s\r\n'
 NEWLINE = b('\r\n')
-HEADER_RESPONSE = '''HTTP/1.1 {0}\r\n{1}\r\n'''
+HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
 
 # Setup Logging
 log = logging.getLogger('Rocket.WSGI')
@@ -167,13 +166,12 @@ class WSGIWorker(Worker):
             self.closeConnection = True
 
         # Build our output headers
-        serialized_headers = ''.join([HEADER_LINE.format(k,v)
+        serialized_headers = ''.join([HEADER_LINE % (k,v)
                                       for (k,v) in self.header_set])
-        header_data = HEADER_RESPONSE.format(self.status,
-                                             serialized_headers)
+        header_data = HEADER_RESPONSE % (self.status, serialized_headers)
 
         # Send the headers
-        log.debug('Sending Headers: {0}'.format(header_data.__repr__()))
+        log.debug('Sending Headers: %s' % header_data.__repr__())
         self.client.sendall(b(header_data))
         self.headers_sent = True
 
@@ -194,7 +192,7 @@ class WSGIWorker(Worker):
 
         if self.request_method != u('HEAD'):
             if self.chunked:
-                self.client.sendall(b('{0:x}\r\n'.format(len(data))))
+                self.client.sendall(b('{0:x}\r\n' % len(data)))
                 self.client.sendall(data + b('\r\n'))
             else:
                 self.client.sendall(data)

@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Import System Modules
-import os
-import sys
-import socket
 import logging
-import traceback
 from select import select
 try:
     from queue import Queue
@@ -15,17 +11,7 @@ from threading import Thread
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b
-
-# Define Constants
-ERROR_RESPONSE = '''\
-HTTP/1.1 {0}
-Content-Length: 0
-Content-Type: text/plain
-
-{0}
-'''
-
+### None ###
 
 class Monitor(Thread):
     # Monitor worker base class.
