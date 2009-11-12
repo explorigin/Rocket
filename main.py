@@ -31,7 +31,7 @@ class Rocket:
                  method='test',
                  app_info = None,
                  max_threads = 10,
-                 min_threads = 2):
+                 min_threads = 10):
 
         self.address = bind_addr[0]
         self.port = bind_addr[1]

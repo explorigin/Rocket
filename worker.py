@@ -119,17 +119,15 @@ class Worker(Thread):
 
     def resize_thread_pool(self):
         if self.max_threads > self.min_threads:
-            qe = self.queue.empty()
-            ql = len(self.threads)
             W = self.__class__
+            qe = W.queue.empty()
+            ql = len(W.threads)
             if qe and ql > self.min_threads:
-                for k in range(ql - self.min_threads):
-                    self.log.debug('Killing spare thread')
+                for k in range(self.min_threads):
                     W.queue.put((None,None))
 
-            elif not qe and ql < self.max_threads:
-                for k in range(self.max_threads - ql):
-                    self.log.debug('Adding new thread')
+            elif not qe and ql<self.max_threads:
+                for k in range(self.min_threads):
                     new_worker = W()
                     W.threads.add(new_worker)
                     new_worker.start()

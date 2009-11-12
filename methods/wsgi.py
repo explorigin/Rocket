@@ -125,15 +125,18 @@ class WSGIWorker(Worker):
             self.header_set.append(('Server',
                                      HTTP_SERVER_NAME))
 
-        if not b('content-length') in header_dict and not self.chunked:
-            if sections == 1:
-                # Add a Content-Length header if it's not there already
-                self.header_set.append(('Content-Length', len(data)))
-            else:
-                # If they sent us more than one section, we blow chunks
-                self.header_set.append(('Transfer-Encoding', 'Chunked'))
-                self.chunked = True
-                self.log.debug('Adding header...Transfer-Encoding: Chunked')
+        if b('content-length') not in header_dict:
+            s = int(self.status.split(' ')[0])
+            if s < 200 or s not in (204, 205, 304):
+                if not self.chunked:
+                    if sections == 1:
+                        # Add a Content-Length header if it's not there already
+                        self.header_set.append(('Content-Length', len(data)))
+                    else:
+                        # If they sent us more than one section, we blow chunks
+                        self.header_set.append(('Transfer-Encoding', 'Chunked'))
+                        self.chunked = True
+                        self.log.debug('Adding header...Transfer-Encoding: Chunked')
 
         # If the client or application asks to keep the connection
         # alive, do so unless data is chunked (which don't play well together)
@@ -193,7 +196,7 @@ class WSGIWorker(Worker):
                 self.client.sendall(b('%x\r\n' % len(data)))
                 self.client.sendall(data + b('\r\n'))
             else:
-                self.client.sendall(data)
+                self.client.sendall(data + b('\r\n'))
 
     def start_response(self, status, response_headers, exc_info=None):
         """ Store the HTTP status and headers to be sent when self.write is
@@ -235,9 +238,12 @@ class WSGIWorker(Worker):
 
         try:
             # Read the headers and build our WSGI environment
-            self.log.debug('Building environment')
-            environ = self.build_environ(sock_file, addr)
-            self.log.debug('Have environment')
+            try:
+                environ = self.build_environ(sock_file, addr)
+            except socket.error:
+                self.log.debug('Client Closed socket.  Exiting')
+                self.closeConnection = True
+                return
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
@@ -256,7 +262,7 @@ class WSGIWorker(Worker):
 
             # If chunked, send our final chunk length
             if self.chunked:
-                self.client.sendall(b('0\r\n'))
+                self.client.sendall(b('0\r\n\r\n'))
 
             # Send headers if the body was empty
             if not self.headers_sent:
