@@ -6,8 +6,10 @@ import sys
 import socket
 import logging
 import traceback
-try: from queue import Queue
-except ImportError: from Queue import Queue
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
 from threading import Thread
 try:
     from io import StringIO
@@ -31,6 +33,8 @@ Content-Type: text/plain
 '''
 
 class Worker(Thread):
+    """The Worker class is a base class responsible for receiving connections
+    and (a subclass) will run an application to process the the connection """
     # Web worker base class.
     queue = Queue()
     threads = set()
@@ -73,14 +77,18 @@ class Worker(Thread):
                 try:
                     self.run_app(client, addr)
                     if self.closeConnection:
+                        if hasattr(client, '_sock'):
+                            client._sock.close()
                         client.close()
                         break
                 except socket.timeout:
                     self.log.debug('Socket timed out')
-                    self.queue.put((client, addr))
+                    self.wait_queue.put((client, addr))
                     break
                 except socket.error:
                     self.log.debug('Client closed socket.')
+                    if hasattr(client, '_sock'):
+                        client._sock.close()
                     client.close()
                     break
                 except:
@@ -89,13 +97,16 @@ class Worker(Thread):
                     try:
                         client.sendall(b(err))
                     except socket.error:
-                        self.log.debug('Could not send error message. Closing socket.')
+                        self.log.debug('Could not send error message.'
+                                       ' Closing socket.')
+                        if hasattr(client, '_sock'):
+                            client._sock.close()
                         client.close()
                         break
 
             self.resize_thread_pool()
 
-    def run_app(self, sock_file):
+    def run_app(self, client, addr):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
         pass

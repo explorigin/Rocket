@@ -17,22 +17,27 @@ except:
     pass
 
 from .worker import get_method
+from .monitor import Monitor
 
 class Rocket:
-    """The Rocket class is responsible for handling threads and receiving and
+    """The Rocket class is responsible for handling threads and accepting and
     dispatching connections."""
 
     def __init__(self,
                  bind_addr = ('127.0.0.1', 8000),
                  method='test',
                  app_info = None,
-                 max_threads = 0,
-                 min_threads = 10):
+                 max_threads = 10,
+                 min_threads = 2):
 
         self.address = bind_addr[0]
         self.port = bind_addr[1]
 
         self._worker = W = get_method(method)
+        self._monitor = Monitor()
+
+        self._monitor.out_queue = W.queue
+        W.wait_queue = self._monitor.queue
 
         W.app_info = app_info
         W.server_name = SERVER_NAME
@@ -58,6 +63,10 @@ class Rocket:
         for thread in self._worker.threads:
             thread.daemon = True
             thread.start()
+
+        # Start our monitor thread
+        self._monitor.daemon = True
+        self._monitor.start()
 
         # Build our listening socket (with appropriate options)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -112,10 +121,13 @@ class Rocket:
         break_loop = 10
         W = self._worker
 
+        self._monitor.queue.put((None,None))
+
         for t in range(len(W.threads)):
             W.queue.put((None,None))
 
-        time.sleep(1)
+        # For good measure
+        time.sleep(0.5)
 
         while len(W.threads) and break_loop != 0:
             try:
@@ -128,6 +140,8 @@ class Rocket:
                 log.warning('Failed to stop thread: \n'
                                 + traceback.format_exc())
                 break_loop -= 1
+
+        self._monitor.join()
 
     def restart(self):
         self.stop()
