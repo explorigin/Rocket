@@ -104,30 +104,34 @@ class Worker(Thread):
                     except socket.error:
                         self.log.debug('Could not send error message.'
                                        ' Closing socket.')
+                        break
+                    finally:
                         if hasattr(client, '_sock'):
                             client._sock.close()
                         client.close()
-                        break
 
             self.resize_thread_pool()
 
     def run_app(self, client, addr):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
-        pass
+        raise NotImplementedError('Overload this method!')
 
     def resize_thread_pool(self):
         if self.max_threads > self.min_threads:
-            qe = Worker.queue.empty()
-            ql = len(Worker.threads)
+            qe = self.queue.empty()
+            ql = len(self.threads)
+            W = self.__class__
             if qe and ql > self.min_threads:
-                for k in range(self.min_threads):
-                    Worker.queue.put((None,None))
+                for k in range(ql - self.min_threads):
+                    self.log.debug('Killing spare thread')
+                    W.queue.put((None,None))
 
-            elif not qe and ql<self.max_threads:
-                for k in range(self.min_threads):
-                    new_worker = Worker()
-                    Worker.threads.add(new_worker)
+            elif not qe and ql < self.max_threads:
+                for k in range(self.max_threads - ql):
+                    self.log.debug('Adding new thread')
+                    new_worker = W()
+                    W.threads.add(new_worker)
                     new_worker.start()
 
 class ChunkedReader:

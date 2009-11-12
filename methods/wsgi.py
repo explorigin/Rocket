@@ -4,7 +4,6 @@
 import os
 import sys
 import socket
-import logging
 from email.utils import formatdate
 from wsgiref.util import FileWrapper
 from types import GeneratorType as genType
@@ -18,10 +17,6 @@ from ..worker import Worker, ChunkedReader
 HEADER_LINE = '%s: %s\r\n'
 NEWLINE = b('\r\n')
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
-
-# Setup Logging
-log = logging.getLogger('Rocket.WSGI')
-
 
 class WSGIWorker(Worker):
     def __init__(self):
@@ -51,10 +46,13 @@ class WSGIWorker(Worker):
         d = sock_file.readline().strip()
         if not d:
             # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
+            self.log.debug('Client sent newline')
             d = sock_file.readline().strip()
 
         if not d:
+            self.log.debug('Client sent newline again, must be closed. Raising.')
             raise socket.error('Client closed socket.')
+
         line_one = d.split(b(' '))
 
         # Grab the headers
@@ -70,7 +68,7 @@ class WSGIWorker(Worker):
                 lval = l[-1].strip()
                 headers.update({lname: lval})
             except UnicodeDecodeError:
-                log.warning('Client sent invalid header: ' + l.__repr__())
+                self.log.warning('Client sent invalid header: ' + l.__repr__())
 
             l = sock_file.readline()
 
@@ -135,7 +133,7 @@ class WSGIWorker(Worker):
                 # If they sent us more than one section, we blow chunks
                 self.header_set.append(('Transfer-Encoding', 'Chunked'))
                 self.chunked = True
-                log.debug('Adding header...Transfer-Encoding: Chunked')
+                self.log.debug('Adding header...Transfer-Encoding: Chunked')
 
         # If the client or application asks to keep the connection
         # alive, do so unless data is chunked (which don't play well together)
@@ -171,14 +169,14 @@ class WSGIWorker(Worker):
         header_data = HEADER_RESPONSE % (self.status, serialized_headers)
 
         # Send the headers
-        log.debug('Sending Headers: %s' % header_data.__repr__())
+        self.log.debug('Sending Headers: %s' % header_data.__repr__())
         self.client.sendall(b(header_data))
         self.headers_sent = True
 
     def write_warning(self, data, sections=None):
         data.warning('WSGI app called write method directly.  This is obsolete'
-                     ' behavior.')
-        self.write(data, sections)
+                     ' behavior.  Please update your app.')
+        return self.write(data, sections)
 
     def write(self, data, sections=None):
         """ Write the data to the output socket. """
@@ -220,7 +218,7 @@ class WSGIWorker(Worker):
         except UnicodeDecodeError:
             self.error = ('500 Internal Server Error',
                           'HTTP Headers should be bytes')
-            log.warning('Received non-byte HTTP Headers from client.')
+            self.log.warning('Received non-byte HTTP Headers from client.')
 
         return self.write_warning
 
@@ -231,12 +229,15 @@ class WSGIWorker(Worker):
         sections = None
         output = None
 
+        self.log.debug('Getting sock_file')
         # Build our file-like object
         sock_file = client.makefile('rb',BUF_SIZE)
 
         try:
             # Read the headers and build our WSGI environment
+            self.log.debug('Building environment')
             environ = self.build_environ(sock_file, addr)
+            self.log.debug('Have environment')
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
@@ -260,8 +261,15 @@ class WSGIWorker(Worker):
             # Send headers if the body was empty
             if not self.headers_sent:
                 self.write('')
-
+        except socket.timeout:
+            self.log.debug('Received Socket time out...re-raiseing')
+            raise
+        except:
+            import traceback
+            self.log.error(str(traceback.format_exc()))
+            self.closeConnection = True
         finally:
+            self.log.debug('Finally closing output and sock_file')
             if hasattr(output,'close'):
                 output.close()
 

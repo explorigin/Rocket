@@ -131,7 +131,7 @@ class Rocket:
         log.info('Received SIGHUP')
         self.restart()
 
-    def stop(self):
+    def stop(self, stoplogging = True):
         log.info("Stopping Server")
         break_loop = 10
         W = self._worker
@@ -157,7 +157,9 @@ class Rocket:
                 break_loop -= 1
 
         self._monitor.join()
+        if stoplogging:
+            logging.shutdown()
 
     def restart(self):
-        self.stop()
+        self.stop(False)
         self.start()
