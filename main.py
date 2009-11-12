@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# Import System Modules
 import sys
 import time
 import signal
@@ -7,17 +8,19 @@ import socket
 import logging
 import traceback
 from select import select
+# Import 3rd Party Modules
+### None ###
+# Import Custom Modules
+from . import SERVER_NAME, WAIT_QUEUE, IS_JYTHON
+from .worker import get_method
+from .monitor import Monitor
 
-from . import SERVER_NAME
-
+# Setup Logging
 log = logging.getLogger('Rocket')
 try:
     log.addHandler(logging.NullHandler())
 except:
     pass
-
-from .worker import get_method
-from .monitor import Monitor
 
 class Rocket:
     """The Rocket class is responsible for handling threads and accepting and
@@ -78,7 +81,10 @@ class Rocket:
             msg = "Cannot share socket.  Using %s:%s exclusively."
             log.warning(msg % (self.address, self.port))
         try:
-            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            if not IS_JYTHON:
+                self.socket.setsockopt(socket.IPPROTO_TCP,
+                                       socket.TCP_NODELAY,
+                                       1)
         except:
             msg = "Cannot set TCP_NODELAY, things might run a little slower"
             log.warning(msg)
@@ -88,7 +94,17 @@ class Rocket:
             msg = "Socket %s:%s in use by other process and it won't share."
             log.error(msg % (self.address, self.port))
             sys.exit(1)
-        self.socket.listen(socket.SOMAXCONN)
+
+        if IS_JYTHON:
+            # Jython requires a socket to be in Non-blocking mode in order to
+            # select on it.
+            self.socket.setblocking(False)
+
+        if hasattr(socket, 'SOMAXCONN'):
+            self.socket.listen(socket.SOMAXCONN)
+        else:
+            # Jython goes here
+            self.socket.listen(WAIT_QUEUE)
 
         try:
             msg = 'Listening on socket: %s:%s'

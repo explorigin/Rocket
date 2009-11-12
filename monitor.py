@@ -11,7 +11,7 @@ from threading import Thread
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-### None ###
+from . import IS_JYTHON
 
 class Monitor(Thread):
     # Monitor worker base class.
@@ -33,7 +33,6 @@ class Monitor(Thread):
 
             self.log.debug('Entering monitor loop.')
 
-
             # Move the queued connections to the selection pool
             while not self.queue.empty() or not len(self.connections):
                 c = self.queue.get()
@@ -46,23 +45,35 @@ class Monitor(Thread):
 
                 self.log.debug('Received a timed out connection.')
                 if c[0] in self.connections:
-                    self.log.debug('Connection received was already monitored...closing old one.')
+                    self.log.debug('Connection received was already '
+                                   'monitored...closing old one.')
                     self.connections[c[0]][0].close()
                     del self.connections[c[0]]
+
+                if IS_JYTHON:
+                    # Jython requires a socket to be in Non-blocking mode in
+                    # order to select on it.
+                    c[0].setblocking(False)
 
                 self.log.debug('Adding connection to monitor list.')
                 self.connections.update({c[0]:c})
 
             # Wait on those connections
             self.log.debug('Blocking on connections')
-            self.log.debug(str(len(self.connections)))
             readable = select(list(self.connections.keys()), [], [], 1.0)[0]
-            #readable = select([], [], [], 1.0)[0]
 
             # If we have any readable connections, put them back
             for x in readable:
                 self.log.debug('Restoring readable connection')
-                self.out_queue.put(self.connections[x])
+                c = self.connections[x]
+
+                if IS_JYTHON:
+                    # Jython requires a socket to be in Non-blocking mode in
+                    # order to select on it, but rest of the code requires that
+                    # it be in blocking mode.
+                    c[0].setblocking(True)
+
+                self.out_queue.put(c)
                 del self.connections[x]
 
     def stop(self):

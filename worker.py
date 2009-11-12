@@ -21,7 +21,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b
+from . import SERVER_NAME, b, IS_JYTHON
 
 # Define Constants
 ERROR_RESPONSE = '''\
@@ -63,6 +63,11 @@ class Worker(Thread):
                 # A non-client is a signal to die
                 self.log.debug('Received a death threat.')
                 return self.threads.remove(self)
+
+            if IS_JYTHON:
+                # In Jython we must set TCP_NODELAY here.
+                # See: http://bugs.jython.org/issue1309
+                client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             self.log.debug('Received a connection.')
 
@@ -188,10 +193,8 @@ class TestWorker(Worker):
             sock_file.close()
 
 def get_method(method):
-    from .methods.file import FileWorker
     from .methods.wsgi import WSGIWorker
-    methods = dict(file=FileWorker,
-                   test=TestWorker,
+    methods = dict(test=TestWorker,
                    wsgi=WSGIWorker)
 
     return methods.get(method.lower(), TestWorker)

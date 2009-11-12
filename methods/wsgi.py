@@ -192,7 +192,7 @@ class WSGIWorker(Worker):
 
         if self.request_method != u('HEAD'):
             if self.chunked:
-                self.client.sendall(b('{0:x}\r\n' % len(data)))
+                self.client.sendall(b('%x\r\n' % len(data)))
                 self.client.sendall(data + b('\r\n'))
             else:
                 self.client.sendall(data)
@@ -269,7 +269,8 @@ class WSGIWorker(Worker):
 
 def TestApp(environ, start_response):
     status = '200 OK'
-    data = [b('<h1>WSGI Works!</h1>')]
+    data = [b('<h1>WSGI Works!</h1>'),
+            b('<h2>Transfer-Encoding: Chunked Works!</h2>')]
     response_headers = [('Content-type', 'text/html')]
     start_response(status, response_headers)
     return data
