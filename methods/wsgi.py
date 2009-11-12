@@ -43,45 +43,18 @@ class WSGIWorker(Worker):
     def build_environ(self, sock_file, addr):
         """ Build the execution environment. """
         # Grab the request line
-        d = sock_file.readline().strip()
-        if not d:
-            # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
-            self.log.debug('Client sent newline')
-            d = sock_file.readline().strip()
-
-        if not d:
-            self.log.debug('Client sent newline again, must be closed. Raising.')
-            raise socket.error('Client closed socket.')
-
-        line_one = d.split(b(' '))
+        request_line = self.read_request_line(sock_file)
 
         # Grab the headers
-        headers = dict()
-        lower_headers = dict() # HTTP headers are not case sensitive
-        l = sock_file.readline()
-        while l.strip():
-            try:
-                # HTTP header values are latin-1 encoded
-                l = u(l, 'latin-1').split(u(':'), 1)
-                # HTTP header names are us-ascii encoded
-                lname = u(u('HTTP_') + l[0].strip(), 'us-ascii')
-                lval = l[-1].strip()
-                headers.update({lname: lval})
-            except UnicodeDecodeError:
-                self.log.warning('Client sent invalid header: ' + l.__repr__())
-
-            l = sock_file.readline()
-
-        # Save an easily accessible set of headers
-        self.lower_headers = dict([(k.lower(), v) for k,v in headers.items()])
+        self.headers = self.read_headers(sock_file)
 
         # Copy the Base Environment
         environ = dict(self.base_environ)
 
         # Add CGI Variables
-        environ['REQUEST_METHOD'] = u(line_one[0])
-        environ['PATH_INFO'] = u(line_one[1], 'latin-1')
-        environ['SERVER_PROTOCOL'] = u(line_one[2])
+        environ['REQUEST_METHOD'] = u(request_line[0])
+        environ['PATH_INFO'] = u(request_line[1].split(b('?'), 1)[0])
+        environ['SERVER_PROTOCOL'] = u(request_line[2])
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
         environ['REMOTE_ADDR'] = u(str(addr[0]))
 
@@ -89,22 +62,22 @@ class WSGIWorker(Worker):
         self.request_method = environ['REQUEST_METHOD'].upper()
 
         # Add Dynamic WSGI Variables
-        environ['wsgi.url_scheme'] = u(line_one[2].split(b('/'))[0]).lower()
-        if lower_headers.get('transfer_encoding', '').lower() == 'chunked':
+        environ['wsgi.url_scheme'] = u(request_line[2].split(b('/'))[0]).lower()
+        if self.headers.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
             environ['wsgi.input'] = ChunkedReader(sock_file)
         else:
             environ['wsgi.input'] = sock_file
 
         # Add HTTP Headers
-        environ.update(headers)
+        environ.update(self.headers)
 
         # Finish WSGI Variables
-        if b('?') in line_one[1]:
-            environ['QUERY_STRING'] = line_one[1].split(b('?'), 1)[-1]
-        if 'http_content_length' in self.lower_headers:
-            environ['CONTENT_LENGTH'] = self.lower_headers['http_content_length']
-        if 'http_content_type' in self.lower_headers:
-            environ['content_type'] = self.lower_headers['http_content_type']
+        if b('?') in request_line[1]:
+            environ['QUERY_STRING'] = u(request_line[1].split(b('?'), 1)[-1])
+        if 'HTTP_CONTENT_LENGTH' in self.headers:
+            environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
+        if 'HTTP_CONTENT_TYPE' in self.headers:
+            environ['CONTENT_TYPE'] = self.headers['HTTP_CONTENT_TYPE']
 
         return environ
 
@@ -145,7 +118,7 @@ class WSGIWorker(Worker):
         # socket buffer is to close the connection.  So in the case of a
         # chunked send, we always close the connection afterward.
         conn = header_dict.get(u('connection'), '').lower()
-        client_conn = self.lower_headers.get(u('http_connection'), '').lower()
+        client_conn = self.headers.get(u('HTTP_CONNECTION'), '').lower()
         if conn != u('close') and client_conn == u('keep-alive'):
             if self.chunked:
                 if conn == u('keep-alive'):

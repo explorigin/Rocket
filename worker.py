@@ -21,7 +21,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b, IS_JYTHON
+from . import SERVER_NAME, b, u, IS_JYTHON
 
 # Define Constants
 ERROR_RESPONSE = '''\
@@ -116,6 +116,37 @@ class Worker(Thread):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
         raise NotImplementedError('Overload this method!')
+
+    def read_request_line(self, sock_file):
+        # Grab the request line
+        d = sock_file.readline()
+        if d == b('\r\n'):
+            # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
+            self.log.debug('Client sent newline')
+            d = sock_file.readline()
+
+        if d == b('\r\n'):
+            self.log.debug('Client sent newline again, must be closed. Raising.')
+            raise socket.error('Client closed socket.')
+
+        return d.strip().split(b(' '))
+
+    def read_headers(self, sock_file):
+        headers = dict()
+        l = sock_file.readline()
+        while l != b('\r\n'):
+            try:
+                # HTTP header values are latin-1 encoded
+                l = l.split(b(':'), 1)
+                # HTTP header names are us-ascii encoded
+                lname = u(l[0].strip(), 'us-ascii').replace(u('-'), u('_'))
+                lval = u(l[-1].strip(), 'latin-1')
+                headers.update({u('HTTP_')+lname.upper(): lval})
+            except UnicodeDecodeError:
+                self.log.warning('Client sent invalid header: ' + l.__repr__())
+
+            l = sock_file.readline()
+        return headers
 
     def resize_thread_pool(self):
         if self.max_threads > self.min_threads:
