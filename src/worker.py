@@ -4,7 +4,6 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
-import os
 import sys
 import socket
 import logging
@@ -24,7 +23,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b, u, IS_JYTHON, close_socket
+from . import SERVER_NAME, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, close_socket, b, u
 
 # Define Constants
 ERROR_RESPONSE = '''\
@@ -38,7 +37,7 @@ Content-Type: text/plain
 class Worker(Thread):
     """The Worker class is a base class responsible for receiving connections
     and (a subclass) will run an application to process the the connection """
-    
+
     # All of these class attributes should be correctly populated by the
     # parent thread or threadpool.
     queue = None
@@ -83,18 +82,19 @@ class Worker(Thread):
                 self.log.debug('Serving a request')
                 try:
                     self.run_app(client, addr)
-                    if self.closeConnection:
-                        close_socket(client)
-                        break
-                except socket.timeout:
+                except SocketTimeout:
                     self.log.debug('Socket timed out')
                     self.wait_queue.put((client, addr))
                     break
                 except socket.error:
-                    self.log.debug('Client closed socket.')
-                    close_socket(client)
-                    break
+                    a, b, c = sys.exc_info()
+                    if b.errno in IGNORE_ERRORS_ON_CLOSE:
+                        self.closeConnection = True
+                        self.log.debug('Socket Error received...closing socket.')
+                    else:
+                        self.log.critical(str(traceback.format_exc()))
                 except:
+                    self.closeConnection = True
                     self.log.error(str(traceback.format_exc()))
                     err = ERROR_RESPONSE % ('500 Server Error', 'Server Error')
                     try:
@@ -102,9 +102,10 @@ class Worker(Thread):
                     except socket.error:
                         self.log.debug('Could not send error message.'
                                        ' Closing socket.')
-                        break
-                    finally:
-                        close_socket(client)
+
+                if self.closeConnection:
+                    close_socket(client)
+                    break
 
     def run_app(self, client, addr):
         # Must be overridden with a method reads the request from the socket
@@ -112,12 +113,15 @@ class Worker(Thread):
         raise NotImplementedError('Overload this method!')
 
     def read_request_line(self, sock_file):
-        # Grab the request line
-        d = sock_file.readline()
-        if d == b('\r\n'):
-            # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
-            self.log.debug('Client sent newline')
+        try:
+            # Grab the request line
             d = sock_file.readline()
+            if d == b('\r\n'):
+                # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
+                self.log.debug('Client sent newline')
+                d = sock_file.readline()
+        except socket.timeout:
+            raise SocketTimeout("Socket timed out before request.")
 
         if d == b('\r\n'):
             self.log.debug('Client sent newline again, must be closed. Raising.')
@@ -141,6 +145,9 @@ class Worker(Thread):
 
             l = sock_file.readline()
         return headers
+
+class SocketTimeout(Exception):
+    pass
 
 class ChunkedReader:
     def __init__(self, sock_file):

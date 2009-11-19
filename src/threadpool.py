@@ -4,7 +4,6 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
-import os
 import sys
 import time
 import socket
@@ -17,7 +16,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b, u, IS_JYTHON, close_socket
+from . import SERVER_NAME, b, u, IS_JYTHON
 from .worker import get_method
 
 # Setup Logging
@@ -33,7 +32,7 @@ class ThreadPool():
     # Web worker base class.
     queue = Queue()
     threads = set()
-    
+
     def __init__(self,
                  method,
                  app_info=None,
@@ -42,14 +41,14 @@ class ThreadPool():
                  server_name=SERVER_NAME,
                  server_port=80,
                  timeout_queue=None):
-        
+
         log.debug("Initializing.")
         self.worker_class = W = get_method(method)
         self.min_threads = min_threads
         self.max_threads = max_threads
         self.timeout_queue = timeout_queue
         self.stop_server = False
-        
+
         if isinstance(app_info, dict):
             app_info.update(max_threads=max_threads,
                             min_threads=min_threads)
@@ -60,9 +59,9 @@ class ThreadPool():
         W.queue = self.queue
         W.wait_queue = self.timeout_queue
         W.timeout = max_threads * 0.2 if max_threads != 0 else 2
-                         
+
         self.threads = set([self.worker_class() for x in range(min_threads)])
-    
+
     def start(self):
         log.debug("Starting threads.")
         for thread in self.threads:
@@ -93,42 +92,40 @@ class ThreadPool():
                                 + traceback.format_exc())
                 break_loop -= 1
 
-    def bring_outcha_dead__thwump(self):
+    def bring_out_your_dead(self):
         # Remove dead threads from the pool
         dead_threads = [t for t in self.threads if not t.is_alive()]
         for t in dead_threads:
             log.debug("Removing dead thread: %s." % t.getName())
             self.threads.remove(t)
-        
+
     def grow(self, amount=None):
-        self.bring_outcha_dead__thwump()
-        
         if not amount:
-            amount = self.max_threads - len(self.threads)
-            
+            amount = self.max_threads
+        amount = min([amount, self.max_threads - len(self.threads)])
+
         log.debug("Growing by %i." % amount)
 
         for x in range(amount):
             new_worker = self.worker_class()
             self.threads.add(new_worker)
             new_worker.start()
-        
+
     def shrink(self, amount=1):
-        self.bring_outcha_dead__thwump()
-        
         log.debug("Shrinking by %i." % amount)
 
         for x in range(amount):
             self.queue.put((None, None))
-        
+
     def dynamic_resize(self):
         if self.max_threads > self.min_threads or self.max_threads == 0:
-            queueEmpty = self.queue.empty()
+            self.bring_out_your_dead()
+
+            queueSize = self.queue.qsize()
             threadCount = len(self.threads)
-            log.debug("Examining ThreadPool. %i threads and %i Q'd conxions" % (threadCount, self.queue.qsize()))
-            if queueEmpty and threadCount > self.min_threads:
+            log.debug("Examining ThreadPool. %i threads and %i Q'd conxions" % (threadCount, queueSize))
+            if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()
 
-            elif not queueEmpty and threadCount < self.max_threads:
-                self.grow()
-
+            elif queueSize != 0 and threadCount < self.max_threads:
+                self.grow(queueSize)

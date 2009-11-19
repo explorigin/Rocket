@@ -174,7 +174,7 @@ class WSGIWorker(Worker):
         if self.request_method != u('HEAD'):
             if self.chunked:
                 self.client.sendall(b('%x\r\n' % len(data)))
-                
+
             try:
                 # Send another NEWLINE for good measure
                 self.client.sendall(data + b('\r\n'))
@@ -223,14 +223,7 @@ class WSGIWorker(Worker):
 
         try:
             # Read the headers and build our WSGI environment
-            try:
-                environ = self.build_environ(sock_file, addr)
-            except socket.timeout:
-                raise
-            except socket.error:
-                self.log.debug('Client Closed socket.  Exiting')
-                self.closeConnection = True
-                return
+            environ = self.build_environ(sock_file, addr)
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
@@ -254,13 +247,6 @@ class WSGIWorker(Worker):
             # Send headers if the body was empty
             if not self.headers_sent:
                 self.write('')
-        except socket.timeout:
-            self.log.debug('Received Socket time out...re-raising')
-            raise
-        except:
-            import traceback
-            self.log.error(str(traceback.format_exc()))
-            self.closeConnection = True
         finally:
             self.log.debug('Finally closing output and sock_file')
             if hasattr(output,'close'):

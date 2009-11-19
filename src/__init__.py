@@ -5,6 +5,7 @@
 
 # Import System Modules
 import sys
+import errno
 import platform
 
 # Define Constants
@@ -14,12 +15,20 @@ HTTP_SERVER_NAME = '%s Python/%s' % (SERVER_NAME, sys.version.split(' ')[0])
 BUF_SIZE = 16384
 WAIT_QUEUE = 5
 IS_JYTHON = platform.system() == 'Java' # Handle special cases for Jython
+IGNORE_ERRORS_ON_CLOSE = set([errno.ECONNABORTED, errno.ECONNRESET])
 
 py3k = sys.version_info[0] > 2
 
 def close_socket(sock):
     if hasattr(sock, '_sock'):
-        sock._sock.close()
+        try:
+            sock._sock.close()
+        except socket.error:
+            a, b, c = sys.exc_info()
+            if b.errno != errno.EBADF:
+                raise b
+            else:
+                pass
     sock.close()
 
 if py3k:
