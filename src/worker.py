@@ -38,12 +38,11 @@ Content-Type: text/plain
 class Worker(Thread):
     """The Worker class is a base class responsible for receiving connections
     and (a subclass) will run an application to process the the connection """
-    # Web worker base class.
-    queue = Queue()
-    threads = set()
+    
+    # All of these class attributes should be correctly populated by the
+    # parent thread or threadpool.
+    queue = None
     app_info = None
-    min_threads = 10
-    max_threads = 10
     timeout = 1
     server_name = SERVER_NAME
     server_port = 80
@@ -65,7 +64,7 @@ class Worker(Thread):
             if not client:
                 # A non-client is a signal to die
                 self.log.debug('Received a death threat.')
-                return self.threads.remove(self)
+                return
 
             if IS_JYTHON:
                 # In Jython we must set TCP_NODELAY here.
@@ -107,8 +106,6 @@ class Worker(Thread):
                     finally:
                         close_socket(client)
 
-            self.resize_thread_pool()
-
     def run_app(self, client, addr):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
@@ -144,21 +141,6 @@ class Worker(Thread):
 
             l = sock_file.readline()
         return headers
-
-    def resize_thread_pool(self):
-        if self.max_threads > self.min_threads:
-            W = self.__class__
-            qe = W.queue.empty()
-            ql = len(W.threads)
-            if qe and ql > self.min_threads:
-                for k in range(self.min_threads):
-                    W.queue.put((None,None))
-
-            elif not qe and ql<self.max_threads:
-                for k in range(self.min_threads):
-                    new_worker = W()
-                    W.threads.add(new_worker)
-                    new_worker.start()
 
 class ChunkedReader:
     def __init__(self, sock_file):
@@ -213,12 +195,9 @@ class TestWorker(Worker):
         response = self.HEADER_RESPONSE % ('200 OK', 'Content-type: text/html')
         response += '\r\n<h1>It Works!</h1>'
 
-        if py3k:
-            response = response.encode()
-
         try:
             self.log.debug(response)
-            client.sendall(response)
+            client.sendall(b(response))
         finally:
             sock_file.close()
 

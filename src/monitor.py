@@ -34,10 +34,10 @@ class Monitor(Thread):
         # Enter thread main loop
         while True:
 
-            self.log.debug('Entering monitor loop.')
 
             # Move the queued connections to the selection pool
             while not self.queue.empty() or not len(self.connections):
+                self.log.debug('In "receive timed-out connections" loop.')
                 c = self.queue.get()
 
                 if not c[0]:
@@ -72,8 +72,8 @@ class Monitor(Thread):
 
                 if IS_JYTHON:
                     # Jython requires a socket to be in Non-blocking mode in
-                    # order to select on it, but rest of the code requires that
-                    # it be in blocking mode.
+                    # order to select on it, but the rest of the code requires
+                    # that it be in blocking mode.
                     c[0].setblocking(True)
 
                 self.out_queue.put(c)

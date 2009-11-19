@@ -25,12 +25,16 @@ class WSGIWorker(Worker):
     def __init__(self):
         """Builds some instance variables that will last the life of the
         thread."""
+        if isinstance(self.app_info, dict):
+            multithreaded = self.app_info.get('max_threads') == 1
+        else:
+            multithreaded = False
         self.base_environ = dict(os.environ.items())
         self.base_environ.update({'SERVER_NAME': self.server_name,
                                   'SERVER_PORT': self.server_port,
                                   'wsgi.errors': sys.stderr,
                                   'wsgi.version': (1, 0),
-                                  'wsgi.multithread': self.max_threads == 1,
+                                  'wsgi.multithread': multithreaded,
                                   'wsgi.multiprocess': False,
                                   'wsgi.run_once': False,
                                   'wsgi.file_wrapper': FileWrapper
@@ -170,9 +174,14 @@ class WSGIWorker(Worker):
         if self.request_method != u('HEAD'):
             if self.chunked:
                 self.client.sendall(b('%x\r\n' % len(data)))
+                
+            try:
+                # Send another NEWLINE for good measure
                 self.client.sendall(data + b('\r\n'))
-            else:
-                self.client.sendall(data + b('\r\n'))
+            except socket.error:
+                # But some clients will close the connection before that
+                # resulting in a socket error.
+                self.closeConnection = True
 
     def start_response(self, status, response_headers, exc_info=None):
         """ Store the HTTP status and headers to be sent when self.write is
@@ -216,6 +225,8 @@ class WSGIWorker(Worker):
             # Read the headers and build our WSGI environment
             try:
                 environ = self.build_environ(sock_file, addr)
+            except socket.timeout:
+                raise
             except socket.error:
                 self.log.debug('Client Closed socket.  Exiting')
                 self.closeConnection = True

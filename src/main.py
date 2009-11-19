@@ -15,8 +15,8 @@ from select import select
 ### None ###
 # Import Custom Modules
 from . import SERVER_NAME, WAIT_QUEUE, IS_JYTHON
-from .worker import get_method
 from .monitor import Monitor
+from .threadpool import ThreadPool
 
 # Setup Logging
 log = logging.getLogger('Rocket')
@@ -33,26 +33,23 @@ class Rocket:
                  bind_addr = ('127.0.0.1', 8000),
                  method='test',
                  app_info = None,
-                 max_threads = 0,
-                 min_threads = 10):
+                 max_threads = 20,
+                 min_threads = 5):
 
         self.address = bind_addr[0]
         self.port = bind_addr[1]
 
-        self._worker = W = get_method(method)
         self._monitor = Monitor()
+        self._threadpool = T = ThreadPool(method,
+                                          app_info = app_info,
+                                          min_threads=min_threads,
+                                          max_threads=max_threads,
+                                          server_name=SERVER_NAME,
+                                          server_port=self.port,
+                                          timeout_queue = self._monitor.queue)
 
-        self._monitor.out_queue = W.queue
-        W.wait_queue = self._monitor.queue
+        self._monitor.out_queue = T.queue
 
-        W.app_info = app_info
-        W.server_name = SERVER_NAME
-        W.server_port = self.port
-        W.stopServer = False
-        W.min_threads = min_threads
-        W.max_threads = max_threads
-        W.timeout = max_threads * 0.2
-        W.threads = set([W() for k in range(min_threads)])
 
     def start(self):
         log.info('Starting %s' % SERVER_NAME)
@@ -65,9 +62,7 @@ class Rocket:
             log.info('This platform does not support signals.')
 
         # Start our worker threads
-        for thread in self._worker.threads:
-            thread.daemon = True
-            thread.start()
+        self._threadpool.start()
 
         # Start our monitor thread
         self._monitor.daemon = True
@@ -112,10 +107,11 @@ class Rocket:
         try:
             msg = 'Listening on socket: %s:%s'
             log.info(msg % (self.address, self.port))
-            while not self._worker.stopServer:
+            while not self._threadpool.stop_server:
                 try:
+                    self._threadpool.dynamic_resize()
                     if select([self.socket], [], [], 1.0)[0]:
-                        self._worker.queue.put(self.socket.accept())
+                        self._threadpool.queue.put(self.socket.accept())
                 except KeyboardInterrupt:
                     return self.stop()
                 except Exception:
@@ -136,28 +132,9 @@ class Rocket:
 
     def stop(self, stoplogging = True):
         log.info("Stopping Server")
-        break_loop = 10
-        W = self._worker
 
         self._monitor.queue.put((None,None))
-
-        for t in range(len(W.threads)):
-            W.queue.put((None,None))
-
-        # For good measure
-        time.sleep(0.5)
-
-        while len(W.threads) and break_loop != 0:
-            try:
-                if 'client_socket' in W.threads:
-                    log.debug("Shutting down client on thread")
-                    W.threads.client.shutdown(socket.SHUT_RDWR)
-                else:
-                    break_loop -= 1
-            except:
-                log.warning('Failed to stop thread: \n'
-                                + traceback.format_exc())
-                break_loop -= 1
+        self._threadpool.stop()
 
         self._monitor.join()
         if stoplogging:
