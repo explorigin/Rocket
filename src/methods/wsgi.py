@@ -244,7 +244,7 @@ class WSGIWorker(Worker):
             if not self.headers_sent:
                 self.write('')
         except socket.timeout:
-            self.log.debug('Received Socket time out...re-raiseing')
+            self.log.debug('Received Socket time out...re-raising')
             raise
         except:
             import traceback

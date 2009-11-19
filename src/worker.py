@@ -24,7 +24,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b, u, IS_JYTHON
+from . import SERVER_NAME, b, u, IS_JYTHON, close_socket
 
 # Define Constants
 ERROR_RESPONSE = '''\
@@ -85,9 +85,7 @@ class Worker(Thread):
                 try:
                     self.run_app(client, addr)
                     if self.closeConnection:
-                        if hasattr(client, '_sock'):
-                            client._sock.close()
-                        client.close()
+                        close_socket(client)
                         break
                 except socket.timeout:
                     self.log.debug('Socket timed out')
@@ -95,9 +93,7 @@ class Worker(Thread):
                     break
                 except socket.error:
                     self.log.debug('Client closed socket.')
-                    if hasattr(client, '_sock'):
-                        client._sock.close()
-                    client.close()
+                    close_socket(client)
                     break
                 except:
                     self.log.error(str(traceback.format_exc()))
@@ -109,9 +105,7 @@ class Worker(Thread):
                                        ' Closing socket.')
                         break
                     finally:
-                        if hasattr(client, '_sock'):
-                            client._sock.close()
-                        client.close()
+                        close_socket(client)
 
             self.resize_thread_pool()
 

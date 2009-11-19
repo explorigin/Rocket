@@ -14,7 +14,7 @@ from threading import Thread
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import IS_JYTHON
+from . import IS_JYTHON, close_socket
 
 class Monitor(Thread):
     # Monitor worker base class.
@@ -50,7 +50,7 @@ class Monitor(Thread):
                 if c[0] in self.connections:
                     self.log.debug('Connection received was already '
                                    'monitored...closing old one.')
-                    self.connections[c[0]][0].close()
+                    close_socket(self.connections[c[0]][0])
                     del self.connections[c[0]]
 
                 if IS_JYTHON:
@@ -83,7 +83,7 @@ class Monitor(Thread):
         self.log.debug('Flushing waiting connections')
         for c in self.connections.items():
             try:
-                c[0].close()
+                close_socket(c[0])
             finally:
                 del c
 
@@ -91,6 +91,6 @@ class Monitor(Thread):
         while not self.queue.empty():
             c = self.queue.get()
             try:
-                c[0].close()
+                close_socket(c[0])
             finally:
                 del c

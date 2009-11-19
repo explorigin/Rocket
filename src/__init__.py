@@ -17,6 +17,11 @@ IS_JYTHON = platform.system() == 'Java' # Handle special cases for Jython
 
 py3k = sys.version_info[0] > 2
 
+def close_socket(sock):
+    if hasattr(sock, '_sock'):
+        sock._sock.close()
+    sock.close()
+
 if py3k:
     def b(n):
         """ Convert string/unicode/bytes literals into bytes.  This allows for
