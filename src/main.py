@@ -33,7 +33,7 @@ class Rocket:
                  bind_addr = ('127.0.0.1', 8000),
                  method='test',
                  app_info = None,
-                 max_threads = 10,
+                 max_threads = 0,
                  min_threads = 10):
 
         self.address = bind_addr[0]

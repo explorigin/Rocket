@@ -259,8 +259,7 @@ class WSGIWorker(Worker):
 
 def TestApp(environ, start_response):
     status = '200 OK'
-    data = [b('<h1>WSGI Works!</h1>'),
-            b('<h2>Transfer-Encoding: Chunked Works!</h2>')]
+    data = [b('<h1>WSGI Works!</h1>')]
     response_headers = [('Content-type', 'text/html')]
     start_response(status, response_headers)
     return data
