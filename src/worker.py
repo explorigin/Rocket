@@ -4,6 +4,7 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
+import re
 import sys
 import socket
 import logging
@@ -13,6 +14,10 @@ try:
 except ImportError:
     from Queue import Queue
 from threading import Thread
+try:
+    from urllib2 import unquote
+except ImportError:
+    from urllib import unquote
 try:
     from io import StringIO
 except ImportError:
@@ -26,6 +31,7 @@ except ImportError:
 from . import SERVER_NAME, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, close_socket, b, u
 
 # Define Constants
+re_SLASH = re.compile('%2F', re.IGNORECASE)
 ERROR_RESPONSE = '''\
 HTTP/1.1 %s
 Content-Length: 0
@@ -87,8 +93,8 @@ class Worker(Thread):
                     self.wait_queue.put((client, addr))
                     break
                 except socket.error:
-                    a, b, c = sys.exc_info()
-                    if b.errno in IGNORE_ERRORS_ON_CLOSE:
+                    a, e, c = sys.exc_info()
+                    if e.errno in IGNORE_ERRORS_ON_CLOSE:
                         self.closeConnection = True
                         self.log.debug('Socket Error received...closing socket.')
                     else:
@@ -127,7 +133,36 @@ class Worker(Thread):
             self.log.debug('Client sent newline again, must be closed. Raising.')
             raise socket.error('Client closed socket.')
 
-        return d.strip().split(b(' '))
+        d = d.decode('latin-1')
+
+        try:
+            method, uri, proto = d.strip().split(b(' '))
+        except ValueError:
+            # Raise 400 Bad Request
+            pass
+
+        req = dict(method=method, protocol = proto)
+        scheme = ''
+        host = ''
+        if uri == '*' or uri.startswith('/'):
+            path = uri
+        elif '://' in uri:
+            scheme, rest = uri.split('://')
+            host, path = rest.split('/', 1)
+        else:
+            path = ''
+
+        query_string = ''
+        if '?' in path:
+            path, query_string = path.split('?', 1)
+
+        path = r'%2F'.join([unquote(x) for x in re_SLASH.split(path)])
+
+        req.update(path=path,
+                   query_string=query_string,
+                   scheme=scheme.lower(),
+                   host=host)
+        return req
 
     def read_headers(self, sock_file):
         headers = dict()

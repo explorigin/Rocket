@@ -50,7 +50,7 @@ class WSGIWorker(Worker):
     def build_environ(self, sock_file, addr):
         """ Build the execution environment. """
         # Grab the request line
-        request_line = self.read_request_line(sock_file)
+        request = self.read_request_line(sock_file)
 
         # Grab the headers
         self.headers = self.read_headers(sock_file)
@@ -59,17 +59,23 @@ class WSGIWorker(Worker):
         environ = dict(self.base_environ)
 
         # Add CGI Variables
-        environ['REQUEST_METHOD'] = u(request_line[0])
-        environ['PATH_INFO'] = u(request_line[1].split(b('?'), 1)[0])
-        environ['SERVER_PROTOCOL'] = u(request_line[2])
+        environ['REQUEST_METHOD'] = u(request['method'])
+        environ['PATH_INFO'] = u(request['path'])
+        environ['SERVER_PROTOCOL'] = u(request['protocol'])
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
         environ['REMOTE_ADDR'] = u(str(addr[0]))
+        if request['query_string']:
+            environ['QUERY_STRING'] = u(request['query_string'])
+        if 'HTTP_CONTENT_LENGTH' in self.headers:
+            environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
+        if 'HTTP_CONTENT_TYPE' in self.headers:
+            environ['CONTENT_TYPE'] = self.headers['HTTP_CONTENT_TYPE']
 
         # Save the request method for later
         self.request_method = environ['REQUEST_METHOD'].upper()
 
         # Add Dynamic WSGI Variables
-        environ['wsgi.url_scheme'] = u(request_line[2].split(b('/'))[0]).lower()
+        environ['wsgi.url_scheme'] = u(request['scheme'])
         if self.headers.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
             environ['wsgi.input'] = ChunkedReader(sock_file)
         else:
@@ -77,14 +83,6 @@ class WSGIWorker(Worker):
 
         # Add HTTP Headers
         environ.update(self.headers)
-
-        # Finish WSGI Variables
-        if b('?') in request_line[1]:
-            environ['QUERY_STRING'] = u(request_line[1].split(b('?'), 1)[-1])
-        if 'HTTP_CONTENT_LENGTH' in self.headers:
-            environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
-        if 'HTTP_CONTENT_TYPE' in self.headers:
-            environ['CONTENT_TYPE'] = self.headers['HTTP_CONTENT_TYPE']
 
         return environ
 
