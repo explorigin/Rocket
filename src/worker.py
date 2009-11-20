@@ -132,14 +132,21 @@ class Worker(Thread):
     def read_headers(self, sock_file):
         headers = dict()
         l = sock_file.readline()
+        lname = None
+        lval = None
         while l != b('\r\n'):
             try:
-                # HTTP header values are latin-1 encoded
-                l = l.split(b(':'), 1)
-                # HTTP header names are us-ascii encoded
-                lname = u(l[0].strip(), 'us-ascii').replace(u('-'), u('_'))
-                lval = u(l[-1].strip(), 'latin-1')
-                headers.update({u('HTTP_')+lname.upper(): lval})
+                if l[0] in b(' \t') and lname:
+                    # Some headers take more than one line
+                    lval += u(', ') + u(l, 'latin-1').strip()
+                else:
+                    # HTTP header values are latin-1 encoded
+                    l = l.split(b(':'), 1)
+                    # HTTP header names are us-ascii encoded
+                    lname = u(l[0].strip(), 'us-ascii').replace(u('-'), u('_'))
+                    lname = u('HTTP_')+lname.upper()
+                    lval = u(l[-1].strip(), 'latin-1')
+                headers.update({lname: lval})
             except UnicodeDecodeError:
                 self.log.warning('Client sent invalid header: ' + l.__repr__())
 
