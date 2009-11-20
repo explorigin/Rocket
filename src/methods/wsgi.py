@@ -9,7 +9,6 @@ import sys
 import socket
 from email.utils import formatdate
 from wsgiref.util import FileWrapper
-from types import GeneratorType as genType
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
@@ -59,13 +58,12 @@ class WSGIWorker(Worker):
         environ = dict(self.base_environ)
 
         # Add CGI Variables
-        environ['REQUEST_METHOD'] = u(request['method'])
-        environ['PATH_INFO'] = u(request['path'])
-        environ['SERVER_PROTOCOL'] = u(request['protocol'])
+        environ['REQUEST_METHOD'] = request['method']
+        environ['PATH_INFO'] = request['path']
+        environ['SERVER_PROTOCOL'] = request['protocol']
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
-        environ['REMOTE_ADDR'] = u(str(addr[0]))
-        if request['query_string']:
-            environ['QUERY_STRING'] = u(request['query_string'])
+        environ['REMOTE_ADDR'] = str(addr[0])
+        environ['QUERY_STRING'] = request['query_string']
         if 'HTTP_CONTENT_LENGTH' in self.headers:
             environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
         if 'HTTP_CONTENT_TYPE' in self.headers:
@@ -75,7 +73,7 @@ class WSGIWorker(Worker):
         self.request_method = environ['REQUEST_METHOD'].upper()
 
         # Add Dynamic WSGI Variables
-        environ['wsgi.url_scheme'] = u(request['scheme'])
+        environ['wsgi.url_scheme'] = request['scheme']
         if self.headers.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
             environ['wsgi.input'] = ChunkedReader(sock_file)
         else:
@@ -225,7 +223,7 @@ class WSGIWorker(Worker):
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
-            if not hasattr(output, '__len__') and not isinstance(output, genType):
+            if not hasattr(output, '__len__') and not hasattr(output, '__iter__'):
                 self.error = ('500 Internal Server Error',
                               'WSGI applications must return a list or '
                               'generator type.')
@@ -238,13 +236,14 @@ class WSGIWorker(Worker):
                 if data:
                     self.write(data, sections)
 
+            # Send headers if the body was empty
+            if not self.headers_sent:
+                self.write('')
+
             # If chunked, send our final chunk length
             if self.chunked:
                 self.client.sendall(b('0\r\n\r\n'))
 
-            # Send headers if the body was empty
-            if not self.headers_sent:
-                self.write('')
         finally:
             self.log.debug('Finally closing output and sock_file')
             if hasattr(output,'close'):

@@ -133,7 +133,7 @@ class Worker(Thread):
             self.log.debug('Client sent newline again, must be closed. Raising.')
             raise socket.error('Client closed socket.')
 
-        d = d.decode('latin-1')
+        d = str(d.decode('latin-1'))
 
         try:
             method, uri, proto = d.strip().split(b(' '))
@@ -181,7 +181,7 @@ class Worker(Thread):
                     lname = u(l[0].strip(), 'us-ascii').replace(u('-'), u('_'))
                     lname = u('HTTP_')+lname.upper()
                     lval = u(l[-1].strip(), 'latin-1')
-                headers.update({lname: lval})
+                headers.update({str(lname): str(lval)})
             except UnicodeDecodeError:
                 self.log.warning('Client sent invalid header: ' + l.__repr__())
 
