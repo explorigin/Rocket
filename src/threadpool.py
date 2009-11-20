@@ -48,6 +48,7 @@ class ThreadPool():
         self.max_threads = max_threads
         self.timeout_queue = timeout_queue
         self.stop_server = False
+        self.grow_threshold = int(max_threads/10) + 2
 
         if isinstance(app_info, dict):
             app_info.update(max_threads=max_threads,
@@ -127,5 +128,5 @@ class ThreadPool():
             if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()
 
-            elif queueSize != 0 and threadCount < self.max_threads:
+            elif queueSize > self.grow_threshold and threadCount < self.max_threads:
                 self.grow(queueSize)
