@@ -114,30 +114,12 @@ class WSGIWorker(Worker):
                         self.chunked = True
                         self.log.debug('Adding header...Transfer-Encoding: Chunked')
 
-        # If the client or application asks to keep the connection
-        # alive, do so unless data is chunked (which don't play well together)
-        #
-        # They don't "play well together" because the only way to flush a
-        # socket buffer is to close the connection.  So in the case of a
-        # chunked send, we always close the connection afterward.
+        # If the client or application asks to keep the connection alive, do so.
         conn = header_dict.get(u('connection'), '').lower()
         client_conn = self.headers.get(u('HTTP_CONNECTION'), '').lower()
         if conn != u('close') and client_conn == u('keep-alive'):
-            if self.chunked:
-                if conn == u('keep-alive'):
-                    # remove the keep-alive header
-                    for h in ('Connection', 'CONNECTION', 'connection'):
-                        try:
-                            self.header_set.remove((u(h), conn))
-                            break
-                        except:
-                            pass
-                elif conn != u('close'):
-                    self.header_set.append(('Connection', 'close'))
-                    self.closeConnection = True
-            else:
-                self.header_set.append(('Connection', 'keep-alive'))
-                self.closeConnection = False
+            self.header_set.append(('Connection', 'keep-alive'))
+            self.closeConnection = False
         else:
             self.header_set.append(('Connection', 'close'))
             self.closeConnection = True
@@ -173,7 +155,9 @@ class WSGIWorker(Worker):
 
             try:
                 # Send another NEWLINE for good measure
-                self.client.sendall(data + b('\r\n'))
+                self.client.sendall(data)
+                if self.chunked:
+                    self.client.sendall(b('\r\n'))
             except socket.error:
                 # But some clients will close the connection before that
                 # resulting in a socket error.

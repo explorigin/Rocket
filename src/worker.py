@@ -136,10 +136,10 @@ class Worker(Thread):
         d = str(d.decode('latin-1'))
 
         try:
-            method, uri, proto = d.strip().split(b(' '))
+            method, uri, proto = d.strip().split(' ')
         except ValueError:
-            # Raise 400 Bad Request
-            pass
+            # FIXME - Raise 400 Bad Request
+            raise
 
         req = dict(method=method, protocol = proto)
         scheme = ''
