@@ -14,7 +14,7 @@ from select import select
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, WAIT_QUEUE, IS_JYTHON
+from . import *
 from .monitor import Monitor
 from .threadpool import ThreadPool
 
@@ -33,8 +33,9 @@ class Rocket:
                  bind_addr = ('127.0.0.1', 8000),
                  method='test',
                  app_info = None,
-                 max_threads = 20,
-                 min_threads = 5):
+                 min_threads=DEFAULTS['MIN_THREADS'],
+                 max_threads=DEFAULTS['MAX_THREADS'],
+                 queue_size = None):
 
         self.address = bind_addr[0]
         self.port = bind_addr[1]
@@ -49,6 +50,14 @@ class Rocket:
                                           timeout_queue = self._monitor.queue)
 
         self._monitor.out_queue = T.queue
+
+        if queue_size:
+            self.queue_size = queue_size
+        else:
+            if hasattr(socket, 'SOMAXCONN'):
+                self.queue_size = socket.SOMAXCONN
+            else:
+                self.queue_size = DEFAULT_QUEUE_SIZE
 
 
     def start(self):
@@ -98,11 +107,7 @@ class Rocket:
             # select on it.
             self.socket.setblocking(False)
 
-        if hasattr(socket, 'SOMAXCONN'):
-            self.socket.listen(socket.SOMAXCONN)
-        else:
-            # Jython goes here
-            self.socket.listen(WAIT_QUEUE)
+        self.socket.listen(self.queue_size)
 
         try:
             msg = 'Listening on socket: %s:%s'
@@ -143,3 +148,20 @@ class Rocket:
     def restart(self):
         self.stop(False)
         self.start()
+
+def wsgiserver(bind_addr,
+               wsgi_app,
+               numthreads=10,
+               server_name=None,
+               max=-1,
+               request_queue_size=5,
+               timeout=10,
+               shutdown_timeout=5):
+    """ A Cherrypy wsgiserver-compatible wrapper. """
+    max_threads = max
+    if max_threads < 0:
+        max_threads = 0
+    return Rocket(bind_addr, 'wsgi', {'wsgi_app': wsgi_app},
+                  min_threads = numthreads,
+                  max_threads = max_threads,
+                  queue_size = request_queue_size)

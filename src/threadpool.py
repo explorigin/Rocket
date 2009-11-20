@@ -16,7 +16,7 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, b, u, IS_JYTHON
+from . import *
 from .worker import get_method
 
 # Setup Logging
@@ -35,9 +35,9 @@ class ThreadPool():
 
     def __init__(self,
                  method,
+                 min_threads=DEFAULTS['MIN_THREADS'],
+                 max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
-                 min_threads=2,
-                 max_threads=0,
                  server_name=SERVER_NAME,
                  server_port=80,
                  timeout_queue=None):
