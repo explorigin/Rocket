@@ -29,46 +29,46 @@ def close_socket(sock):
         try:
             sock._sock.close()
         except socket.error:
-            a, b, c = sys.exc_info()
-            if b.errno != errno.EBADF:
-                raise b
+            info = sys.exc_info()
+            if info[1].errno != errno.EBADF:
+                raise info[1]
             else:
                 pass
     sock.close()
 
 if PY3K:
-    def b(n):
+    def b(val):
         """ Convert string/unicode/bytes literals into bytes.  This allows for
         the same code to run on Python 2.x and 3.x. """
-        if isinstance(n, str):
-            return n.encode()
+        if isinstance(val, str):
+            return val.encode()
         else:
-            return n
+            return val
 
-    def u(n, encoding="us-ascii"):
+    def u(val, encoding="us-ascii"):
         """ Convert bytes into string/unicode.  This allows for the
         same code to run on Python 2.x and 3.x. """
-        if isinstance(n, bytes):
-            return n.decode(encoding)
+        if isinstance(val, bytes):
+            return val.decode(encoding)
         else:
-            return n
+            return val
 
 else:
-    def b(n):
+    def b(val):
         """ Convert string/unicode/bytes literals into bytes.  This allows for
         the same code to run on Python 2.x and 3.x. """
-        if isinstance(n, unicode):
-            return n.encode()
+        if isinstance(val, unicode):
+            return val.encode()
         else:
-            return n
+            return val
 
-    def u(n, encoding="us-ascii"):
+    def u(val, encoding="us-ascii"):
         """ Convert bytes into string/unicode.  This allows for the
         same code to run on Python 2.x and 3.x. """
-        if isinstance(n, str):
-            return n.decode(encoding)
+        if isinstance(val, str):
+            return val.decode(encoding)
         else:
-            return n
+            return val
 
 __all__ = ['VERSION', 'SERVER_NAME', 'HTTP_SERVER_NAME', 'BUF_SIZE',
            'IS_JYTHON', 'IGNORE_ERRORS_ON_CLOSE', 'DEFAULTS', 'PY3K', 'b', 'u']
