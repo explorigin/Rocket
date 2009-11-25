@@ -24,18 +24,6 @@ DEFAULTS = dict(QUEUE_SIZE = DEFAULT_QUEUE_SIZE,
 
 PY3K = sys.version_info[0] > 2
 
-def close_socket(sock):
-    if hasattr(sock, '_sock'):
-        try:
-            sock._sock.close()
-        except socket.error:
-            info = sys.exc_info()
-            if info[1].errno != errno.EBADF:
-                raise info[1]
-            else:
-                pass
-    sock.close()
-
 if PY3K:
     def b(val):
         """ Convert string/unicode/bytes literals into bytes.  This allows for

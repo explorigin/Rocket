@@ -28,7 +28,8 @@ except ImportError:
 # Import 3rd Party Modules
 ### None ###
 # Import Custom Modules
-from . import SERVER_NAME, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, close_socket, b, u
+from . import *
+from .connection import Connection
 
 # Define Constants
 re_SLASH = re.compile('%2F', re.IGNORECASE)
@@ -50,7 +51,6 @@ class Worker(Thread):
     app_info = None
     timeout = 1
     server_name = SERVER_NAME
-    server_port = 80
 
     def run(self):
         self.name = self.getName()
@@ -63,23 +63,28 @@ class Worker(Thread):
 
         # Enter thread main loop
         while True:
-            client, addr = self.queue.get()
-            self.client, self.client_address = client, addr
+            conn = self.queue.get()
 
-            if not client:
+            if isinstance(conn, tuple):
+                self.pool.dynamic_resize()
+                conn = Connection(*conn)
+
+            if not conn:
                 # A non-client is a signal to die
                 self.log.debug('Received a death threat.')
                 return
 
+            self.conn = conn
+
             if IS_JYTHON:
                 # In Jython we must set TCP_NODELAY here.
                 # See: http://bugs.jython.org/issue1309
-                client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             self.log.debug('Received a connection.')
 
-            if hasattr(client,'settimeout') and self.timeout:
-                client.settimeout(self.timeout)
+            if hasattr(conn,'settimeout') and self.timeout:
+                conn.settimeout(self.timeout)
 
             self.closeConnection = False
 
@@ -87,14 +92,14 @@ class Worker(Thread):
             while True:
                 self.log.debug('Serving a request')
                 try:
-                    self.run_app(client, addr)
+                    self.run_app(conn)
                 except SocketTimeout:
                     self.log.debug('Socket timed out')
-                    self.wait_queue.put((client, addr))
+                    self.wait_queue.put(conn)
                     break
                 except socket.error:
-                    a, e, c = sys.exc_info()
-                    if e.errno in IGNORE_ERRORS_ON_CLOSE:
+                    info = sys.exc_info()
+                    if info[1].errno in IGNORE_ERRORS_ON_CLOSE:
                         self.closeConnection = True
                         self.log.debug('Socket Error received...closing socket.')
                     else:
@@ -104,16 +109,16 @@ class Worker(Thread):
                     self.log.error(str(traceback.format_exc()))
                     err = ERROR_RESPONSE % ('500 Server Error', 'Server Error')
                     try:
-                        client.sendall(b(err))
+                        conn.sendall(b(err))
                     except socket.error:
                         self.log.debug('Could not send error message.'
                                        ' Closing socket.')
 
                 if self.closeConnection:
-                    close_socket(client)
+                    conn.close()
                     break
 
-    def run_app(self, client, addr):
+    def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
         raise NotImplementedError('Overload this method!')
@@ -189,6 +194,7 @@ class Worker(Thread):
         return headers
 
 class SocketTimeout(Exception):
+    "Exception for when a socket times out between requests."
     pass
 
 class ChunkedReader:
@@ -233,9 +239,9 @@ class ChunkedReader:
 class TestWorker(Worker):
     HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
 
-    def run_app(self, client):
+    def run_app(self, conn):
         self.closeConnection = True
-        sock_file = client.makefile('rb',BUF_SIZE)
+        sock_file = conn.makefile('rb',BUF_SIZE)
         n = sock_file.readline().strip()
         while n:
             self.log.debug(n)
@@ -246,7 +252,7 @@ class TestWorker(Worker):
 
         try:
             self.log.debug(response)
-            client.sendall(b(response))
+            conn.sendall(b(response))
         finally:
             sock_file.close()
 

@@ -30,15 +30,17 @@ class Rocket:
     dispatching connections."""
 
     def __init__(self,
-                 bind_addr = ('127.0.0.1', 8000),
+                 interfaces = ('127.0.0.1', 8000),
                  method='test',
                  app_info = None,
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
                  queue_size = None):
 
-        self.address = bind_addr[0]
-        self.port = bind_addr[1]
+        if not isinstance(interfaces, list):
+            self.interfaces = [interfaces]
+        else:
+            self.interfaces = interfaces
 
         self._monitor = Monitor()
         self._threadpool = T = ThreadPool(method,
@@ -46,7 +48,6 @@ class Rocket:
                                           min_threads=min_threads,
                                           max_threads=max_threads,
                                           server_name=SERVER_NAME,
-                                          server_port=self.port,
                                           timeout_queue = self._monitor.queue)
 
         self._monitor.out_queue = T.queue
@@ -77,46 +78,62 @@ class Rocket:
         self._monitor.daemon = True
         self._monitor.start()
 
-        # Build our listening socket (with appropriate options)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if not self.socket:
-            log.error("Failed to get socket.")
-            raise socket.error
-        try:
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        except:
-            msg = "Cannot share socket.  Using %s:%s exclusively."
-            log.warning(msg % (self.address, self.port))
-        try:
-            if not IS_JYTHON:
-                self.socket.setsockopt(socket.IPPROTO_TCP,
-                                       socket.TCP_NODELAY,
-                                       1)
-        except:
-            msg = "Cannot set TCP_NODELAY, things might run a little slower"
-            log.warning(msg)
-        try:
-            self.socket.bind((self.address,int(self.port)))
-        except:
-            msg = "Socket %s:%s in use by other process and it won't share."
-            log.error(msg % (self.address, self.port))
+        # Build our listening sockets (with appropriate options)
+        self.listeners = list()
+        self.listener_dict = dict()
+        for i in self.interfaces:
+            addr = i[0]
+            port = i[1]
+            listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            if not listener:
+                log.error("Failed to get socket.")
+                raise socket.error
+
+            try:
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            except:
+                msg = "Cannot share socket.  Using %s:%i exclusively."
+                log.warning(msg % (addr, port))
+            try:
+                if not IS_JYTHON:
+                    listener.setsockopt(socket.IPPROTO_TCP,
+                                        socket.TCP_NODELAY,
+                                        1)
+            except:
+                msg = "Cannot set TCP_NODELAY, things might run a little slower"
+                log.warning(msg)
+            try:
+                listener.bind((addr, port))
+            except:
+                msg = "Socket %s:%i in use by other process and it won't share."
+                log.error(msg % (addr, port))
+                continue
+
+            if IS_JYTHON:
+                # Jython requires a socket to be in Non-blocking mode in order to
+                # select on it.
+                listener.setblocking(False)
+
+            listener.listen(self.queue_size)
+
+            self.listeners.append(listener)
+            self.listener_dict.update({listener: i})
+
+        if not self.listeners:
+            log.critical("No interfaces to listen on...closing.")
             sys.exit(1)
 
-        if IS_JYTHON:
-            # Jython requires a socket to be in Non-blocking mode in order to
-            # select on it.
-            self.socket.setblocking(False)
-
-        self.socket.listen(self.queue_size)
-
         try:
-            msg = 'Listening on socket: %s:%s'
-            log.info(msg % (self.address, self.port))
+            msg = 'Listening on sockets: '
+            msg += ', '.join(['%s:%i' %  (l[0], l[1]) for l in self.listener_dict.values()])
+            log.info(msg)
+
             while not self._threadpool.stop_server:
                 try:
-                    self._threadpool.dynamic_resize()
-                    if select([self.socket], [], [], 1.0)[0]:
-                        self._threadpool.queue.put(self.socket.accept())
+                    for l in select(self.listeners, [], [], 1.0)[0]:
+                        self._threadpool.queue.put((l.accept(),
+                                                    self.listener_dict[l][1]))
                 except KeyboardInterrupt:
                     return self.stop()
                 except Exception:
@@ -138,7 +155,7 @@ class Rocket:
     def stop(self, stoplogging = True):
         log.info("Stopping Server")
 
-        self._monitor.queue.put((None,None))
+        self._monitor.queue.put(None)
         self._threadpool.stop()
 
         self._monitor.join()

@@ -9,6 +9,7 @@ import time
 import socket
 import logging
 import traceback
+from threading import Lock
 try:
     from queue import Queue
 except ImportError:
@@ -39,10 +40,12 @@ class ThreadPool():
                  max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
                  server_name=SERVER_NAME,
-                 server_port=80,
                  timeout_queue=None):
 
         log.debug("Initializing.")
+        self.check_for_dead_threads = 0
+        self.resize_lock = Lock()
+
         self.worker_class = W = get_method(method)
         self.min_threads = min_threads
         self.max_threads = max_threads
@@ -55,8 +58,8 @@ class ThreadPool():
                             min_threads=min_threads)
 
         W.app_info = app_info
+        W.pool = self
         W.server_name = server_name
-        W.server_port = server_port
         W.queue = self.queue
         W.wait_queue = self.timeout_queue
         W.timeout = max_threads * 0.2 if max_threads != 0 else 2
@@ -76,11 +79,12 @@ class ThreadPool():
         break_loop = len(self.threads)
 
         for t in range(break_loop):
-            self.queue.put((None,None))
+            self.queue.put(None)
 
         # For good measure
         time.sleep(0.5)
 
+        # FIXME - this doesn't actually work as intended.
         while len(self.threads) and break_loop != 0:
             try:
                 if 'client_socket' in self.threads:
@@ -99,6 +103,7 @@ class ThreadPool():
         for t in dead_threads:
             log.debug("Removing dead thread: %s." % t.getName())
             self.threads.remove(t)
+        self.check_for_dead_threads -= len(dead_threads)
 
     def grow(self, amount=None):
         if not amount:
@@ -115,12 +120,16 @@ class ThreadPool():
     def shrink(self, amount=1):
         log.debug("Shrinking by %i." % amount)
 
+        self.check_for_dead_threads += amount
+
         for x in range(amount):
-            self.queue.put((None, None))
+            self.queue.put(None)
 
     def dynamic_resize(self):
-        if self.max_threads > self.min_threads or self.max_threads == 0:
-            self.bring_out_your_dead()
+        if self.resize_lock.acquire(False) and \
+           (self.max_threads > self.min_threads or self.max_threads == 0):
+            if self.check_for_dead_threads > 0:
+                self.bring_out_your_dead()
 
             queueSize = self.queue.qsize()
             threadCount = len(self.threads)
@@ -130,3 +139,5 @@ class ThreadPool():
 
             elif queueSize > self.grow_threshold and threadCount < self.max_threads:
                 self.grow(queueSize)
+
+            self.resize_lock.release()

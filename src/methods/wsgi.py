@@ -30,7 +30,6 @@ class WSGIWorker(Worker):
             multithreaded = False
         self.base_environ = dict(os.environ.items())
         self.base_environ.update({'SERVER_NAME': self.server_name,
-                                  'SERVER_PORT': self.server_port,
                                   'wsgi.errors': sys.stderr,
                                   'wsgi.version': (1, 0),
                                   'wsgi.multithread': multithreaded,
@@ -46,7 +45,7 @@ class WSGIWorker(Worker):
 
         Worker.__init__(self)
 
-    def build_environ(self, sock_file, addr):
+    def build_environ(self, sock_file, conn):
         """ Build the execution environment. """
         # Grab the request line
         request = self.read_request_line(sock_file)
@@ -62,7 +61,8 @@ class WSGIWorker(Worker):
         environ['PATH_INFO'] = request['path']
         environ['SERVER_PROTOCOL'] = request['protocol']
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
-        environ['REMOTE_ADDR'] = str(addr[0])
+        environ['SERVER_PORT'] = conn.server_port
+        environ['REMOTE_ADDR'] = str(conn.client_addr)
         environ['QUERY_STRING'] = request['query_string']
         if 'HTTP_CONTENT_LENGTH' in self.headers:
             environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
@@ -131,7 +131,7 @@ class WSGIWorker(Worker):
 
         # Send the headers
         self.log.debug('Sending Headers: %s' % header_data.__repr__())
-        self.client.sendall(b(header_data))
+        self.conn.sendall(b(header_data))
         self.headers_sent = True
 
     def write_warning(self, data, sections=None):
@@ -151,13 +151,13 @@ class WSGIWorker(Worker):
 
         if self.request_method != u('HEAD'):
             if self.chunked:
-                self.client.sendall(b('%x\r\n' % len(data)))
+                self.conn.sendall(b('%x\r\n' % len(data)))
 
             try:
                 # Send another NEWLINE for good measure
-                self.client.sendall(data)
+                self.conn.sendall(data)
                 if self.chunked:
-                    self.client.sendall(b('\r\n'))
+                    self.conn.sendall(b('\r\n'))
             except socket.error:
                 # But some clients will close the connection before that
                 # resulting in a socket error.
@@ -190,7 +190,7 @@ class WSGIWorker(Worker):
 
         return self.write_warning
 
-    def run_app(self, client, addr):
+    def run_app(self, conn):
         self.header_set = []
         self.headers_sent = False
         self.error = (None, None)
@@ -199,11 +199,11 @@ class WSGIWorker(Worker):
 
         self.log.debug('Getting sock_file')
         # Build our file-like object
-        sock_file = client.makefile('rb',BUF_SIZE)
+        sock_file = conn.makefile('rb',BUF_SIZE)
 
         try:
             # Read the headers and build our WSGI environment
-            environ = self.build_environ(sock_file, addr)
+            environ = self.build_environ(sock_file, conn)
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
@@ -226,7 +226,7 @@ class WSGIWorker(Worker):
 
             # If chunked, send our final chunk length
             if self.chunked:
-                self.client.sendall(b('0\r\n\r\n'))
+                self.conn.sendall(b('0\r\n\r\n'))
 
         finally:
             self.log.debug('Finally closing output and sock_file')
