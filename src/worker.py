@@ -123,6 +123,10 @@ class Worker(Thread):
         # and sends a response.
         raise NotImplementedError('Overload this method!')
 
+    def kill(self):
+        if self.isAlive() and hasattr(self, 'conn'):
+            self.conn.shutdown(socket.SHUT_RDWR)
+
     def read_request_line(self, sock_file):
         try:
             # Grab the request line

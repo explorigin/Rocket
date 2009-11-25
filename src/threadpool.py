@@ -76,29 +76,28 @@ class ThreadPool():
     def stop(self):
         log.debug("Stopping threads.")
         self.stop_server = True
-        break_loop = len(self.threads)
 
-        for t in range(break_loop):
+        # Prompt the threads to die
+        for t in self.threads:
             self.queue.put(None)
 
-        # For good measure
-        time.sleep(0.5)
+        # Give them the gun
+        for t in self.threads:
+            t.kill()
 
-        # FIXME - this doesn't actually work as intended.
-        while len(self.threads) and break_loop != 0:
-            try:
-                if 'client_socket' in self.threads:
-                    log.debug("Shutting down client on thread")
-                    self.threads.client.shutdown(socket.SHUT_RDWR)
-                else:
-                    break_loop -= 1
-            except:
-                log.warning('Failed to stop thread: \n'
-                                + traceback.format_exc())
-                break_loop -= 1
+        # Wait until they pull the trigger
+        for t in self.threads:
+            t.join()
+
+        # Clean up the mess
+        self.resize_lock.acquire()
+        self.bring_out_your_dead()
+        self.resize_lock.release()
 
     def bring_out_your_dead(self):
         # Remove dead threads from the pool
+        # Assumes resize_lock is acquired from calling thread
+
         dead_threads = [t for t in self.threads if not t.is_alive()]
         for t in dead_threads:
             log.debug("Removing dead thread: %s." % t.getName())
@@ -106,8 +105,13 @@ class ThreadPool():
         self.check_for_dead_threads -= len(dead_threads)
 
     def grow(self, amount=None):
+        # Assumes resize_lock is acquired from calling thread
+        if self.stop_server:
+            return
+
         if not amount:
             amount = self.max_threads
+
         amount = min([amount, self.max_threads - len(self.threads)])
 
         log.debug("Growing by %i." % amount)
@@ -118,6 +122,7 @@ class ThreadPool():
             new_worker.start()
 
     def shrink(self, amount=1):
+        # Assumes resize_lock is acquired from calling thread
         log.debug("Shrinking by %i." % amount)
 
         self.check_for_dead_threads += amount
