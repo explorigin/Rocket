@@ -124,24 +124,22 @@ class Rocket:
             log.critical("No interfaces to listen on...closing.")
             sys.exit(1)
 
-        try:
-            msg = 'Listening on sockets: '
-            msg += ', '.join(['%s:%i' %  (l[0], l[1]) for l in self.listener_dict.values()])
-            log.info(msg)
+        msg = 'Listening on sockets: '
+        msg += ', '.join(['%s:%i' %  (l[0], l[1]) for l in self.listener_dict.values()])
+        log.info(msg)
 
-            while not self._threadpool.stop_server:
-                try:
-                    for l in select(self.listeners, [], [], 1.0)[0]:
-                        self._threadpool.queue.put((l.accept(),
-                                                    self.listener_dict[l][1]))
-                except KeyboardInterrupt:
-                    return self.stop()
-                except Exception:
-                    log.warn(str(traceback.format_exc()))
-                    continue
-        except:
-            log.critical("The main loop exited unexpectedly. \n"
-                         + traceback.format_exc())
+        while not self._threadpool.stop_server:
+            try:
+                for l in select(self.listeners, [], [], 1.0)[0]:
+                    self._threadpool.queue.put((l.accept(),
+                                                self.listener_dict[l][1]))
+            except KeyboardInterrupt:
+                # Capture a keyboard interrupt when running from a console
+                return self.stop()
+            except Exception:
+                log.error(str(traceback.format_exc()))
+                continue
+
         return self.stop()
 
     def _sigterm(self):

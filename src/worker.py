@@ -33,9 +33,9 @@ from .connection import Connection
 
 # Define Constants
 re_SLASH = re.compile('%2F', re.IGNORECASE)
-ERROR_RESPONSE = '''\
+RESPONSE = '''\
 HTTP/1.1 %s
-Content-Length: 0
+Content-Length: %i
 Content-Type: text/plain
 
 %s
@@ -101,18 +101,14 @@ class Worker(Thread):
                     info = sys.exc_info()
                     if info[1].errno in IGNORE_ERRORS_ON_CLOSE:
                         self.closeConnection = True
-                        self.log.debug('Socket Error received...closing socket.')
+                        self.log.debug('Ignorable socket Error received...'
+                                       'closing connection.')
                     else:
                         self.log.critical(str(traceback.format_exc()))
                 except:
                     self.closeConnection = True
                     self.log.error(str(traceback.format_exc()))
-                    err = ERROR_RESPONSE % ('500 Server Error', 'Server Error')
-                    try:
-                        conn.sendall(b(err))
-                    except socket.error:
-                        self.log.debug('Could not send error message.'
-                                       ' Closing socket.')
+                    self.send_response('500 Server Error')
 
                 if self.closeConnection:
                     conn.close()
@@ -122,6 +118,15 @@ class Worker(Thread):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
         raise NotImplementedError('Overload this method!')
+
+    def send_response(status, disconnect=False):
+        msg = RESPONSE % (status, len(status), status.split(' ', 1)[1])
+        try:
+            self.conn.sendall(b(err))
+        except socket.error:
+            self.closeConnection = True
+            self.log.error('Tried to send "%s" to client but received socket'
+                           ' error' % status)
 
     def kill(self):
         if self.isAlive() and hasattr(self, 'conn'):

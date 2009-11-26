@@ -33,7 +33,6 @@ class Monitor(Thread):
 
         # Enter thread main loop
         while True:
-
             # Move the queued connections to the selection pool
             while not self.queue.empty() or not len(self.connections):
                 self.log.debug('In "receive timed-out connections" loop.')

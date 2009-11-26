@@ -112,7 +112,8 @@ class WSGIWorker(Worker):
                         # If they sent us more than one section, we blow chunks
                         self.header_set.append(('Transfer-Encoding', 'Chunked'))
                         self.chunked = True
-                        self.log.debug('Adding header...Transfer-Encoding: Chunked')
+                        self.log.debug('Adding header...Transfer-Encoding: '
+                                       'Chunked')
 
         # If the client or application asks to keep the connection alive, do so.
         conn = header_dict.get(u('connection'), '').lower()
@@ -135,8 +136,8 @@ class WSGIWorker(Worker):
         self.headers_sent = True
 
     def write_warning(self, data, sections=None):
-        data.warning('WSGI app called write method directly.  This is obsolete'
-                     ' behavior.  Please update your app.')
+        self.log.warning('WSGI app called write method directly.  This is '
+                         'obsolete behavior.  Please update your app.')
         return self.write(data, sections)
 
     def write(self, data, sections=None):
@@ -186,7 +187,8 @@ class WSGIWorker(Worker):
         except UnicodeDecodeError:
             self.error = ('500 Internal Server Error',
                           'HTTP Headers should be bytes')
-            self.log.warning('Received non-byte HTTP Headers from client.')
+            self.log.error('Received HTTP Headers from client that contain'
+                           ' invalid characters for Latin-1 encoding.')
 
         return self.write_warning
 

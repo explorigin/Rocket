@@ -138,11 +138,16 @@ class ThreadPool():
 
             queueSize = self.queue.qsize()
             threadCount = len(self.threads)
-            log.debug("Examining ThreadPool. %i threads and %i Q'd conxions" % (threadCount, queueSize))
+
+            log.debug("Examining ThreadPool. %i threads and %i Q'd conxions"
+                      % (threadCount, queueSize))
+
             if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()
 
-            elif queueSize > self.grow_threshold and threadCount < self.max_threads:
+            elif queueSize > self.grow_threshold \
+                 and threadCount < self.max_threads:
+
                 self.grow(queueSize)
 
             self.resize_lock.release()
