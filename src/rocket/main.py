@@ -164,14 +164,14 @@ class Rocket:
         self.stop(False)
         self.start()
 
-def wsgiserver(bind_addr,
-               wsgi_app,
-               numthreads=10,
-               server_name=None,
-               max=-1,
-               request_queue_size=5,
-               timeout=10,
-               shutdown_timeout=5):
+def CherryPyWSGIServer(bind_addr,
+                       wsgi_app,
+                       numthreads=10,
+                       server_name=None,
+                       max=-1,
+                       request_queue_size=5,
+                       timeout=10,
+                       shutdown_timeout=5):
     """ A Cherrypy wsgiserver-compatible wrapper. """
     max_threads = max
     if max_threads < 0:

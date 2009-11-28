@@ -8,6 +8,7 @@ import os
 import sys
 import socket
 from email.utils import formatdate
+from wsgiref import demo_app
 from wsgiref.util import FileWrapper
 # Import 3rd Party Modules
 ### None ###
@@ -41,7 +42,7 @@ class WSGIWorker(Worker):
         if isinstance(self.app_info, dict):
             self.app = self.app_info.get('wsgi_app', TestApp)
         else:
-            self.app = TestApp
+            self.app = demo_app
 
         Worker.__init__(self)
 
@@ -236,10 +237,3 @@ class WSGIWorker(Worker):
                 output.close()
 
             sock_file.close()
-
-def TestApp(environ, start_response):
-    status = '200 OK'
-    data = [b('<h1>WSGI Works!</h1>')]
-    response_headers = [('Content-type', 'text/html')]
-    start_response(status, response_headers)
-    return data
