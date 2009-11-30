@@ -14,10 +14,8 @@ try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
-from . import *
+# Import Package Modules
+from . import DEFAULTS, SERVER_NAME
 from .worker import get_method
 
 # Setup Logging

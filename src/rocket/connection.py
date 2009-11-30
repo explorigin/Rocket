@@ -5,9 +5,7 @@
 
 # Import System Modules
 import socket
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
+# Import Package Modules
 ### None ###
 
 class Connection(socket.socket):

@@ -8,11 +8,9 @@ import os
 import sys
 import socket
 from email.utils import formatdate
-from wsgiref import demo_app
+from wsgiref.simple_server import demo_app
 from wsgiref.util import FileWrapper
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
+# Import Package Modules
 from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE
 from ..worker import Worker, ChunkedReader
 

@@ -11,10 +11,8 @@ import socket
 import logging
 import traceback
 from select import select
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
-from . import *
+# Import Package Modules
+from . import DEFAULTS, SERVER_NAME, IS_JYTHON
 from .monitor import Monitor
 from .threadpool import ThreadPool
 
@@ -58,7 +56,7 @@ class Rocket:
             if hasattr(socket, 'SOMAXCONN'):
                 self.queue_size = socket.SOMAXCONN
             else:
-                self.queue_size = DEFAULT_QUEUE_SIZE
+                self.queue_size = DEFAULTS['QUEUE_SIZE']
 
 
     def start(self):

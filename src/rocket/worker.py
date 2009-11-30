@@ -25,10 +25,8 @@ except ImportError:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
-from . import *
+# Import Package Modules
+from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, b, u
 from .connection import Connection
 
 # Define Constants
@@ -119,10 +117,10 @@ class Worker(Thread):
         # and sends a response.
         raise NotImplementedError('Overload this method!')
 
-    def send_response(status, disconnect=False):
+    def send_response(self, status, disconnect=False):
         msg = RESPONSE % (status, len(status), status.split(' ', 1)[1])
         try:
-            self.conn.sendall(b(err))
+            self.conn.sendall(b(msg))
         except socket.error:
             self.closeConnection = True
             self.log.error('Tried to send "%s" to client but received socket'
@@ -250,7 +248,7 @@ class TestWorker(Worker):
 
     def run_app(self, conn):
         self.closeConnection = True
-        sock_file = conn.makefile('rb',BUF_SIZE)
+        sock_file = conn.makefile('rb', BUF_SIZE)
         n = sock_file.readline().strip()
         while n:
             self.log.debug(n)

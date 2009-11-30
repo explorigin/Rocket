@@ -58,5 +58,9 @@ else:
         else:
             return val
 
-__all__ = ['VERSION', 'SERVER_NAME', 'HTTP_SERVER_NAME', 'BUF_SIZE',
-           'IS_JYTHON', 'IGNORE_ERRORS_ON_CLOSE', 'DEFAULTS', 'PY3K', 'b', 'u']
+# Import Package Modules
+from .main import Rocket
+
+__all__ = ['VERSION', 'SERVER_NAME', 'HTTP_SERVER_NAME', 'BUF_SIZE', 
+           'IS_JYTHON', 'IGNORE_ERRORS_ON_CLOSE', 'DEFAULTS', 'PY3K', 'b', 'u',
+           'Rocket']

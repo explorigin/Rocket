@@ -11,9 +11,7 @@ try:
 except ImportError:
     from Queue import Queue
 from threading import Thread
-# Import 3rd Party Modules
-### None ###
-# Import Custom Modules
+# Import Package Modules
 from . import IS_JYTHON
 
 class Monitor(Thread):
