@@ -26,7 +26,7 @@ except ImportError:
     except ImportError:
         from StringIO import StringIO
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, b, u
+from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, u
 from .connection import Connection
 
 # Define Constants
@@ -128,7 +128,10 @@ class Worker(Thread):
 
     def kill(self):
         if self.isAlive() and hasattr(self, 'conn'):
-            self.conn.shutdown(socket.SHUT_RDWR)
+            try:
+                self.conn.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
 
     def read_request_line(self, sock_file):
         try:

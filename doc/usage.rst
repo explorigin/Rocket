@@ -58,3 +58,23 @@ CherryPyWSGIServer(*interface*, *wsgi_app*, *numthreads*, *server_name*, *max*, 
 * *request_queue_size* - equivalent to *queue_size* above
 * *shutdown_timeout* - *Not Used* - Rocket's shutdown mechanism works differently and does not require a timeout.
 
+Architecture Considerations
+===========================
+
+The Short Story
+---------------
+
+For Jython running CPU bound applications, use 1.5 times the number of CPU cores for both *min_threads* and *max_threads*.
+
+For cPython, use a reasonable number of *min_threads* (10 for a small server or development server, 64 for a production server) with no limit set to *max_threads*.
+
+
+Explanation
+-----------
+
+Rocket is tested to run with both cPython and Jython.  Which are very different platforms from a concurrency perspective.  This has an impact on how Rocket should be configured on each platform.
+
+Because of its GIL, cPython is keeps one process on one CPU regardless of the number of running threads.  Threads are used in cPython to allow other work to go on while some portions are blocked on external (to Python) operations.  For this reason, it is advantageous to have a large number of threads running.
+
+Jython, on the other hand, has no GIL and is fully multi-threaded.  However, this means that the more threads will sit and lock on global resources.  Starvation is a major problem for CPU-bound servers.  If your web application is largely I/O bound, then a large number of threads is perfectly fine.  But for CPU bound applications, having a large number of threads will dramatically decrease the performance of Rocket on Jython.  The recommended number for *max_threads* for Rocket on CPU-bound applications is 1.5 * the number of CPU-cores.  For example, a server with 2 dual-core processors has 8 cores.  The recommended maximum number of threads for Jython would be 12.  Since this is such a low number, setting *max_threads* and *min_threads* to an equal number will prevent the threadpool from dynamically flexing the thread pool (thus saving a little more processor power).
+
