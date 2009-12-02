@@ -32,6 +32,11 @@ setup(name = "Rocket",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 3",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
-        "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
-        ]
+        "Topic :: Internet :: WWW/HTTP :: HTTP Servers"],
+      entry_points = {
+        "distutils.commands": [
+            "build_monolithic = monolith:build_monolithic",
+        ],
+    }
+        
       )
