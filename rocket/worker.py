@@ -95,6 +95,9 @@ class Worker(Thread):
                     self.log.debug('Socket timed out')
                     self.wait_queue.put(conn)
                     break
+                except SocketClosed:
+                    self.closeConnection = True
+                    self.log.debug('Client closed socket')
                 except socket.error:
                     info = sys.exc_info()
                     if info[1].args[0] in IGNORE_ERRORS_ON_CLOSE:
@@ -146,9 +149,9 @@ class Worker(Thread):
         except socket.timeout:
             raise SocketTimeout("Socket timed out before request.")
 
-        if d == b('\r\n'):
-            self.log.debug('Client sent newline again, must be closed. Raising.')
-            raise socket.error('Client closed socket.')
+        if d.strip() == b(''):
+            self.log.debug('Client did not send a recognizable request.')
+            raise SocketClosed('Client closed socket.')
 
         d = str(d.decode('latin-1'))
 
@@ -207,6 +210,10 @@ class Worker(Thread):
 
 class SocketTimeout(Exception):
     "Exception for when a socket times out between requests."
+    pass
+
+class SocketClosed(Exception):
+    "Exception for when a socket is closed by the client."
     pass
 
 class ChunkedReader:
