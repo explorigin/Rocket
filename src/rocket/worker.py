@@ -131,7 +131,7 @@ class Worker(Thread):
             try:
                 self.conn.shutdown(socket.SHUT_RDWR)
             except socket.error:
-                pass
+                self.log.warning(traceback.format_exc())
 
     def read_request_line(self, sock_file):
         try:

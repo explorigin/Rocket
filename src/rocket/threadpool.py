@@ -29,7 +29,7 @@ class ThreadPool():
     """The ThreadPool class is a container class for all the worker threads. It
     manages the number of actively running threads."""
     # Web worker base class.
-    queue = Queue()
+    queue = None
     threads = set()
 
     def __init__(self,
@@ -38,11 +38,13 @@ class ThreadPool():
                  max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
                  server_name=SERVER_NAME,
-                 timeout_queue=None):
+                 timeout_queue=None,
+                 request_queue_size=5):
 
         log.debug("Initializing.")
         self.check_for_dead_threads = 0
         self.resize_lock = Lock()
+        self.queue = Queue(request_queue_size)
 
         self.worker_class = W = get_method(method)
         self.min_threads = min_threads
@@ -129,7 +131,8 @@ class ThreadPool():
             self.queue.put(None)
 
     def dynamic_resize(self):
-        if self.resize_lock.acquire(False) and \
+        locked = self.resize_lock.acquire(False)
+        if locked and \
            (self.max_threads > self.min_threads or self.max_threads == 0):
             if self.check_for_dead_threads > 0:
                 self.bring_out_your_dead()
@@ -148,4 +151,5 @@ class ThreadPool():
 
                 self.grow(queueSize)
 
+        if locked:
             self.resize_lock.release()

@@ -40,16 +40,6 @@ class Rocket:
         else:
             self.interfaces = interfaces
 
-        self._monitor = Monitor()
-        self._threadpool = T = ThreadPool(method,
-                                          app_info = app_info,
-                                          min_threads=min_threads,
-                                          max_threads=max_threads,
-                                          server_name=SERVER_NAME,
-                                          timeout_queue = self._monitor.queue)
-
-        self._monitor.out_queue = T.queue
-
         if queue_size:
             self.queue_size = queue_size
         else:
@@ -57,7 +47,20 @@ class Rocket:
                 self.queue_size = socket.SOMAXCONN
             else:
                 self.queue_size = DEFAULTS['QUEUE_SIZE']
+        
+        if max_threads and self.queue_size > max_threads:
+            self.queue_size = max_threads
 
+        self._monitor = Monitor()
+        self._threadpool = T = ThreadPool(method,
+                                          app_info = app_info,
+                                          min_threads=min_threads,
+                                          max_threads=max_threads,
+                                          server_name=SERVER_NAME,
+                                          timeout_queue = self._monitor.queue,
+                                          request_queue_size = self.queue_size)
+
+        self._monitor.out_queue = T.queue
 
     def start(self):
         log.info('Starting %s' % SERVER_NAME)
