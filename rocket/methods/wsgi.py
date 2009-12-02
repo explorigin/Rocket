@@ -38,7 +38,7 @@ class WSGIWorker(Worker):
                                   })
         # Grab our application
         if isinstance(self.app_info, dict):
-            self.app = self.app_info.get('wsgi_app', TestApp)
+            self.app = self.app_info.get('wsgi_app', demo_app)
         else:
             self.app = demo_app
 

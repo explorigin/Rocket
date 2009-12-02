@@ -11,7 +11,7 @@ import socket
 class Connection(socket.socket):
     # A connection to a client
     def __init__(self, sock_tuple, port):
-        self.client_addr = sock_tuple[1]
+        self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
 
         socket.socket.__init__(self, _sock=sock_tuple[0])
