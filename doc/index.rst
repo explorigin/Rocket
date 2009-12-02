@@ -12,6 +12,7 @@ Welcome to Rocket's documentation!
 
    usage
    design
+   extending
    acknowledgements
 
 Indices and tables
