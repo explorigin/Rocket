@@ -12,10 +12,10 @@ Welcome to Rocket's documentation!
 
    usage
    design
+   acknowledgements
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`search`
-.. * :ref:`modindex`
