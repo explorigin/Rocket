@@ -31,12 +31,17 @@ setup(name = "Rocket",
       packages = find_packages('src'),
       package_dir = {'':'src'},
       license = "MIT License",
-      long_description = """\
-""",
+      long_description = "",
       classifiers = [
-        "Development Status :: 1 - Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 3",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
+        "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
         ]
       )
