@@ -97,7 +97,7 @@ class Worker(Thread):
                     break
                 except socket.error:
                     info = sys.exc_info()
-                    if info[1].errno in IGNORE_ERRORS_ON_CLOSE:
+                    if info[1].args[0] in IGNORE_ERRORS_ON_CLOSE:
                         self.closeConnection = True
                         self.log.debug('Ignorable socket Error received...'
                                        'closing connection.')
