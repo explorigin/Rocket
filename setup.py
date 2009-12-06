@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+# This file is part of the Rocket Web Server
+# Copyright (c) 2009 Timothy Farrell
+
 from distribute_setup import use_setuptools
 use_setuptools()
 from setuptools import setup, find_packages
@@ -35,7 +40,7 @@ setup(name = "Rocket",
         "Topic :: Internet :: WWW/HTTP :: HTTP Servers"],
       entry_points = {
         "distutils.commands": [
-            "build_monolithic = monolith:build_monolithic",
+            "build_monolithic = monolithic:build_monolithic",
         ],
     }
         

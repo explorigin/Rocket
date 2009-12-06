@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+
+# This file is part of the Rocket Web Server
+# Copyright (c) 2009 Timothy Farrell
+
+"""\
+monolithic.py is a module that contains the distutils add-in for creating
+a monolithic source module of the Rocket web server.  To use get a monolithic
+Rocket module first install Rocket normally.  Then run::
+
+  setup.py build_monolithic
+
+The resulting monolithic module will be in the build/monolithic/ subdirectory.
+"""
+
 import os
 import re
 from glob import glob
@@ -23,7 +38,11 @@ class build_monolithic(Command):
     def run(self):
         build = self.get_finalized_command('build')
         filepath = os.path.join(build.build_base, 'monolithic', 'rocket.py')
-        os.makedirs(os.path.dirname(filepath))
+        if os.path.exists(filepath):
+            os.unlink(filepath)
+        else:
+            os.makedirs(os.path.dirname(filepath))
+
         out = open(filepath, 'w')
 
         first = True
@@ -37,15 +56,22 @@ class build_monolithic(Command):
                 first = False
             else:
                 filedata = ''.join(filedata[4:])
+
+            out.write("# Monolithic build...start of module: %s\r" % filename)
             
             i = 0
             templist = []
+            showImportNotice = True
             for item in package_imports.finditer(filedata, i):
                 out.write(filedata[i:item.start()])
-                out.write('# ' + item.group() + ' # Monolithic Mode')
+                if showImportNotice:
+                    out.write('# package imports removed in monolithic build')
+                    showImportNotice = False
                 i = item.end()
             
             out.write(filedata[i:len(filedata)])
+
+            out.write("\r# Monolithic build...end of module: %s\r" % filename)
 
         out.close()
         
