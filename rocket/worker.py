@@ -15,9 +15,9 @@ except ImportError:
     from Queue import Queue
 from threading import Thread
 try:
-    from urllib2 import unquote
-except ImportError:
     from urllib import unquote
+except ImportError:
+    from urllib.parse import unquote
 try:
     from io import StringIO
 except ImportError:
@@ -26,7 +26,7 @@ except ImportError:
     except ImportError:
         from StringIO import StringIO
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, u
+from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K
 from .connection import Connection
 
 # Define Constants
@@ -142,18 +142,19 @@ class Worker(Thread):
         try:
             # Grab the request line
             d = sock_file.readline()
-            if d == b('\r\n'):
+            d = d.decode('ISO-8859-1') if PY3K else d
+
+            if d == '\r\n':
                 # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
                 self.log.debug('Client sent newline')
                 d = sock_file.readline()
+                d = d.decode('ISO-8859-1') if PY3K else d
         except socket.timeout:
             raise SocketTimeout("Socket timed out before request.")
 
-        if d.strip() == b(''):
+        if d.strip() == '':
             self.log.debug('Client did not send a recognizable request.')
             raise SocketClosed('Client closed socket.')
-
-        d = str(d.decode('latin-1'))
 
         try:
             method, uri, proto = d.strip().split(' ')
@@ -187,23 +188,29 @@ class Worker(Thread):
     def read_headers(self, sock_file):
         headers = dict()
         l = sock_file.readline()
+        
         lname = None
         lval = None
-        while l != b('\r\n'):
+        while True:
             try:
-                if l[0] in b(' \t') and lname:
-                    # Some headers take more than one line
-                    lval += u(', ') + u(l, 'latin-1').strip()
-                else:
-                    # HTTP header values are latin-1 encoded
-                    l = l.split(b(':'), 1)
-                    # HTTP header names are us-ascii encoded
-                    lname = u(l[0].strip(), 'us-ascii').replace(u('-'), u('_'))
-                    lname = u('HTTP_')+lname.upper()
-                    lval = u(l[-1].strip(), 'latin-1')
-                headers.update({str(lname): str(lval)})
+                l = str(l, 'ISO-8859-1') if PY3K else l
             except UnicodeDecodeError:
                 self.log.warning('Client sent invalid header: ' + l.__repr__())
+
+            if l == '\r\n':
+                break
+            
+            if l[0] in ' \t' and lname:
+                # Some headers take more than one line
+                lval += ', ' + l.strip()
+            else:
+                # HTTP header values are latin-1 encoded
+                l = l.split(':', 1)
+                # HTTP header names are us-ascii encoded
+                lname = l[0].strip().replace('-', '_')
+                lname = 'HTTP_'+lname.upper()
+                lval = l[-1].strip()
+            headers.update({str(lname): str(lval)})
 
             l = sock_file.readline()
         return headers

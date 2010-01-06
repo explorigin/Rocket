@@ -11,7 +11,7 @@ from email.utils import formatdate
 from wsgiref.simple_server import demo_app
 from wsgiref.util import FileWrapper
 # Import Package Modules
-from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE
+from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
 
 # Define Constants
@@ -88,19 +88,17 @@ class WSGIWorker(Worker):
         header_dict = dict([(x.lower(), y) for (x,y) in self.header_set])
 
         # Does the app want us to send output chunked?
-        self.chunked = header_dict.get(u('transfer-encoding'), '').lower() == u('chunked')
+        self.chunked = header_dict.get('transfer-encoding', '').lower() == 'chunked'
 
         # Add a Date header if it's not there already
-        if not b('date') in header_dict:
-            self.header_set.append(('Date',
-                                     formatdate(usegmt=True)))
+        if not 'date' in header_dict:
+            self.header_set.append(('Date', formatdate(usegmt=True)))
 
         # Add a Server header if it's not there already
-        if not b('server') in header_dict:
-            self.header_set.append(('Server',
-                                     HTTP_SERVER_NAME))
+        if not 'server' in header_dict:
+            self.header_set.append(('Server', HTTP_SERVER_NAME))
 
-        if b('content-length') not in header_dict:
+        if 'content-length' not in header_dict:
             s = int(self.status.split(' ')[0])
             if s < 200 or s not in (204, 205, 304):
                 if not self.chunked:
@@ -115,9 +113,9 @@ class WSGIWorker(Worker):
                                        'Chunked')
 
         # If the client or application asks to keep the connection alive, do so.
-        conn = header_dict.get(u('connection'), '').lower()
-        client_conn = self.headers.get(u('HTTP_CONNECTION'), '').lower()
-        if conn != u('close') and client_conn == u('keep-alive'):
+        conn = header_dict.get('connection', '').lower()
+        client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
+        if conn != 'close' and client_conn == 'keep-alive':
             self.header_set.append(('Connection', 'keep-alive'))
             self.closeConnection = False
         else:
@@ -149,7 +147,7 @@ class WSGIWorker(Worker):
         if not self.headers_sent:
             self.send_headers(data, sections)
 
-        if self.request_method != u('HEAD'):
+        if self.request_method != 'HEAD':
             if self.chunked:
                 self.conn.sendall(b('%x\r\n' % len(data)))
 
@@ -177,12 +175,11 @@ class WSGIWorker(Worker):
         elif self.header_set:
             raise AssertionError("Headers already set!")
 
-        self.status = status
+        self.status = str(status, 'ISO-8859-1') if PY3K else status
         # Make sure headers are bytes objects
         try:
-            self.header_set = [(u(h[0], 'us-ascii').strip(),
-                                u(h[1], 'latin-1').strip())
-                for h in response_headers]
+            self.header_set = [(h[0].strip(),
+                                h[1].strip()) for h in response_headers]
         except UnicodeDecodeError:
             self.error = ('500 Internal Server Error',
                           'HTTP Headers should be bytes')
