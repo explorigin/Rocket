@@ -39,7 +39,7 @@ class Rocket:
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
                  queue_size = None,
-                 timeout = 0):
+                 timeout = 600):
 
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
@@ -211,4 +211,5 @@ def CherryPyWSGIServer(bind_addr,
     return Rocket(bind_addr, 'wsgi', {'wsgi_app': wsgi_app},
                   min_threads = numthreads,
                   max_threads = max_threads,
-                  queue_size = request_queue_size)
+                  queue_size = request_queue_size,
+                  timeout = timeout)

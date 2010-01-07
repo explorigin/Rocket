@@ -13,7 +13,7 @@ There are two methods of invoking Rocket.  The first is the native method which 
 
     from rocket import Rocket
     from wsgiref import demo_app
-    
+
     server = Rocket(('127.0.0.1', 80), 'wsgi', {wsgi_app:demo_app})
     server.start()
 
@@ -23,7 +23,7 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
 
     from rocket import CherryPyWSGIServer
     from wsgiref import demo_app
-    
+
     server = CherryPyWSGIServer(('127.0.0.1', 80), demo_app)
     server.start()
 
@@ -44,14 +44,14 @@ API Reference
 Classes
 -------
 
-Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_)
+Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_, timeout_)
 
 .. _interfaces:
 
 * interfaces_ - Either a tuple or list of tuples that specify the listening socket information.  Each tuple contains a string-based IP address, an integer port number and, optionally, a keyfile and a certfile.  For example::
-   
+
     ('127.0.0.1', 80)
-    
+
  will serve only to localhost on port 80.  To serve on all interfaces, specify the IP address of **0.0.0.0** along with the desired port number.  interfaces_ can also be a list of such tuples specifying all interfaces on which the Rocket server will respond to requests. For example::
 
     [('0.0.0.0', 80),
@@ -83,6 +83,12 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_)
 
 * queue_size_ - An integer number of connections allowed to be queued before Rocket accepts them.  This number is passed to the *listen()* function in the operating system's socket library.  It defaults to **None** which either uses the operating system's maximum or 5 if the OS max is not discoverable.
 
+.. _timeout:
+
+* timeout_ - An integer number of seconds to listen to a connection for a new request before closing it.  Defaults to **600**.
+
+
+
 .. _CherryPyWSGIServer:
 
 CherryPyWSGIServer(interface_, wsgi_app_, numthreads_, server_name_, max_, request_queue_size_, timeout_, shutdown_timeout_)
@@ -111,9 +117,9 @@ CherryPyWSGIServer(interface_, wsgi_app_, numthreads_, server_name_, max_, reque
 
 * request_queue_size_ - equivalent to queue_size_ above
 
-.. _timeout:
+.. _timeoutq:
 
-* timeout_ - *Not Implemented* - Rocket does not currently timeout connections.
+* timeout_ - equivalent to timeout_ above but defaults to **10**.
 
 .. _shutdown_timeout:
 
@@ -128,7 +134,7 @@ An instance of Rocket (or CherryPyWSGIServer) has only one method for external u
     - KeyboardInterrupt for a server running in a console.
     - The process receives a SIGTERM or SIGHUP signal for platforms that support signals.
     - A running thread signals the server to stop.
-    
+
 Architecture Considerations
 ===========================
 
@@ -148,4 +154,3 @@ Rocket is tested to run with both cPython and Jython.  Which are very different 
 Because of its GIL, cPython is keeps one process on one CPU regardless of the number of running threads.  Threads are used in cPython to allow other work to go on while some portions are blocked on external (to Python) operations.  For this reason, it is advantageous to have a large number of threads running.
 
 Jython, on the other hand, has no GIL and is fully multi-threaded with fine-grained locking.  The downside of this is that many threads will sit and lock on global resources.  Starvation is a major problem for CPU-bound servers.  If your web application is largely I/O bound, then a large number of threads is perfectly fine.  But for CPU bound applications, having a large number of threads will dramatically decrease the performance of Rocket on Jython.  The recommended number for max_threads_ for Rocket on CPU-bound applications is 1.5 * the number of CPU-cores.  For example, a server with 2 dual-core processors has 8 cores.  The recommended maximum number of threads for Jython would be 12.  Since this is such a low number, setting max_threads_ and min_threads_ to an equal number will prevent the threadpool from dynamically flexing the thread pool (thus saving a little more processor power).
-
