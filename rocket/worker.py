@@ -153,7 +153,7 @@ class Worker(Thread):
             except socket.error:
                 info = sys.exc_info()
                 if info[1].args[0] != socket.EBADF:
-                    raise
+                    self.log.debug('Error on shutdown: '+str(info))
 
     def read_request_line(self, sock_file):
         try:

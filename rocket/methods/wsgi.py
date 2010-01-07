@@ -72,7 +72,11 @@ class WSGIWorker(Worker):
         self.request_method = environ['REQUEST_METHOD'].upper()
 
         # Add Dynamic WSGI Variables
-        environ['wsgi.url_scheme'] = request['scheme']
+        if conn.ssl:
+            environ['wsgi.url_scheme'] = 'https'
+            environ['HTTPS'] = 'on'
+        else:
+            environ['wsgi.url_scheme'] = 'http'
         if self.headers.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
             environ['wsgi.input'] = ChunkedReader(sock_file)
         else:
