@@ -12,8 +12,9 @@ Welcome to Rocket's documentation!
 
    usage
    design
-   extending
+   development
    acknowledgements
+   license
 
 Indices and tables
 ==================

@@ -27,18 +27,39 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
     server = CherryPyWSGIServer(('127.0.0.1', 80), demo_app)
     server.start()
 
+Logging
+=======
+
+Rocket uses the standard Python logging module for logging.  To log messages to a file, do something like this before running Rocket().start()::
+
+    import logging
+    log = logging.getLogger('Rocket')
+    log.setLevel(logging.INFO)
+    h = logging.FileHandler('rocket.log')
+    log.addHandler(h)
+
 API Reference
 =============
 
-Rocket(*interfaces*, *method*, *app_info*, *min_threads*, *max_threads*, *queue_size*)
+Classes
+-------
+
+Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_)
 
 .. _interfaces:
 
-* interfaces_ - Either a tuple or list of tuples that specify the listening socket information.  Each tuple contains a string-based IP address and an integer port number.  For example::
+* interfaces_ - Either a tuple or list of tuples that specify the listening socket information.  Each tuple contains a string-based IP address, an integer port number and, optionally, a keyfile and a certfile.  For example::
    
     ('127.0.0.1', 80)
     
- will serve only to localhost on port 80.  To serve on all interfaces, specify the IP address of **0.0.0.0** along with the desired port number.  interfaces_ is a list of such tuples specifying all interfaces on which the Rocket server will respond to requests.  interfaces_ defaults to the value of **('127.0.0.1', 8000)** and is intended for testing purposes.  *Note that some operating systems require special privileges in order to serve on sockets 1-1024.*
+ will serve only to localhost on port 80.  To serve on all interfaces, specify the IP address of **0.0.0.0** along with the desired port number.  interfaces_ can also be a list of such tuples specifying all interfaces on which the Rocket server will respond to requests. For example::
+
+    [('0.0.0.0', 80),
+     ('0.0.0.0', 443, 'server_key.pem', 'server_cert.pem')]
+
+ will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.
+
+ **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass and interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
 
 .. _method:
 
@@ -46,7 +67,9 @@ Rocket(*interfaces*, *method*, *app_info*, *min_threads*, *max_threads*, *queue_
 
 .. _app_info:
 
-* app_info_ - A dictionary that holds information that the Worker class specified in *method* will use for configuration.  See the documentation for the Worker class you are using for specifics on what to put in this dictionary.
+* app_info_ - A dictionary that holds information that the Worker class specified in *method* will use for configuration.  See the documentation for the Worker class you are using for specifics on what to put in this dictionary.  Current Worker classes are: WSGIWorker_
+
+.. _WSGIWorker: development.html#wsgiworker
 
 .. _min_threads:
 
@@ -62,36 +85,50 @@ Rocket(*interfaces*, *method*, *app_info*, *min_threads*, *max_threads*, *queue_
 
 .. _CherryPyWSGIServer:
 
-CherryPyWSGIServer(*interface*, *wsgi_app*, *numthreads*, *server_name*, *max*, *request_queue_size*, *timeout*, *shutdown_timeout*)
+CherryPyWSGIServer(interface_, wsgi_app_, numthreads_, server_name_, max_, request_queue_size_, timeout_, shutdown_timeout_)
 
 .. _interface:
 
-* *interface* - equivalent to one tuple of interfaces_ above
+* interface_ - equivalent to one tuple of interfaces_ above
 
 .. _wsgi_app:
 
-* *wsgi_app* - the WSGI application for Rocket to serve
+* wsgi_app_ - the WSGI application for Rocket to serve.
 
 .. _numthreads:
 
-* *numthreads* - equivalent to min_threads_ above
+* numthreads_ - equivalent to min_threads_ above
 
 .. _server_name:
 
-* *server_name* - *Not Used* - Rocket uses it's own server name.
+* server_name_ - *Not Used* - Rocket uses it's own server name.
 
 .. _max:
 
-* *max* - equivalent to max_threads_ above
+* max_ - equivalent to max_threads_ above
 
 .. _request_queue_size:
 
-* *request_queue_size* - equivalent to queue_size_ above
+* request_queue_size_ - equivalent to queue_size_ above
+
+.. _timeout:
+
+* timeout_ - *Not Implemented* - Rocket does not currently timeout connections.
 
 .. _shutdown_timeout:
 
-* *shutdown_timeout* - *Not Used* - Rocket's shutdown mechanism works differently and does not require a timeout.
+* shutdown_timeout_ - *Not Used* - Rocket's shutdown mechanism works differently and does not require a timeout.
 
+Instances
+---------
+
+An instance of Rocket (or CherryPyWSGIServer) has only one method for external use:
+
+* start() - Start the main server loop.  This call will block until server execution is interrupted by:
+    - KeyboardInterrupt for a server running in a console.
+    - The process receives a SIGTERM or SIGHUP signal for platforms that support signals.
+    - A running thread signals the server to stop.
+    
 Architecture Considerations
 ===========================
 
