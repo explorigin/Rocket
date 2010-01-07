@@ -6,6 +6,7 @@
 # Import System Modules
 import re
 import sys
+import time
 import socket
 import logging
 import traceback
@@ -131,6 +132,8 @@ class Worker(Thread):
                 if self.closeConnection:
                     conn.close()
                     break
+                else:
+                    conn.start_time = time.time()
 
     def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket

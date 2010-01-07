@@ -18,24 +18,26 @@ from ..worker import Worker, ChunkedReader
 HEADER_LINE = '%s: %s\r\n'
 NEWLINE = b('\r\n')
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
+BASE_ENV = {'SERVER_NAME': socket.gethostname(),
+            'wsgi.errors': sys.stderr,
+            'wsgi.version': (1, 0),
+            'wsgi.multiprocess': False,
+            'wsgi.run_once': False,
+            'wsgi.file_wrapper': FileWrapper
+            }
 
 class WSGIWorker(Worker):
     def __init__(self):
         """Builds some instance variables that will last the life of the
         thread."""
         if isinstance(self.app_info, dict):
-            multithreaded = self.app_info.get('max_threads') == 1
+            multithreaded = self.app_info.get('max_threads') != 1
         else:
             multithreaded = False
-        self.base_environ = dict(os.environ.items())
-        self.base_environ.update({'SERVER_NAME': self.server_name,
-                                  'wsgi.errors': sys.stderr,
-                                  'wsgi.version': (1, 0),
+        self.base_environ = dict({'SERVER_SOFTWARE': self.server_name,
                                   'wsgi.multithread': multithreaded,
-                                  'wsgi.multiprocess': False,
-                                  'wsgi.run_once': False,
-                                  'wsgi.file_wrapper': FileWrapper
                                   })
+        self.base_environ.update(BASE_ENV)
         # Grab our application
         if isinstance(self.app_info, dict):
             self.app = self.app_info.get('wsgi_app', demo_app)
@@ -57,10 +59,13 @@ class WSGIWorker(Worker):
 
         # Add CGI Variables
         environ['REQUEST_METHOD'] = request['method']
+        # I haven't decided if we really need to be like Apache.
+        #environ['REQUEST_URI'] = '?'.join((request['path'], request['query_string']))
         environ['PATH_INFO'] = request['path']
         environ['SERVER_PROTOCOL'] = request['protocol']
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
-        environ['SERVER_PORT'] = conn.server_port
+        environ['SERVER_PORT'] = str(conn.server_port)
+        environ['REMOTE_PORT'] = str(conn.client_port)
         environ['REMOTE_ADDR'] = str(conn.client_addr)
         environ['QUERY_STRING'] = request['query_string']
         if 'HTTP_CONTENT_LENGTH' in self.headers:

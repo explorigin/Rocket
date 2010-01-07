@@ -4,6 +4,7 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
+import time
 import socket
 try:
     import ssl
@@ -18,6 +19,7 @@ class Connection:
         self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
         self.socket = sock_tuple[0]
+        self.start_time = time.time()
         self.ssl = ssl and isinstance(self.socket, ssl.SSLSocket)
 
         for x in dir(self.socket):

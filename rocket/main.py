@@ -38,7 +38,8 @@ class Rocket:
                  app_info = None,
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
-                 queue_size = None):
+                 queue_size = None,
+                 timeout = 0):
 
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
@@ -51,7 +52,7 @@ class Rocket:
             if hasattr(socket, 'SOMAXCONN'):
                 self.queue_size = socket.SOMAXCONN
             else:
-                self.queue_size = DEFAULTS['QUEUE_SIZE']
+                self.queue_size = DEFAULTS['LISTEN_QUEUE_SIZE']
 
         if max_threads and self.queue_size > max_threads:
             self.queue_size = max_threads
@@ -62,10 +63,10 @@ class Rocket:
                                           min_threads=min_threads,
                                           max_threads=max_threads,
                                           server_name=SERVER_NAME,
-                                          timeout_queue = self._monitor.queue,
-                                          request_queue_size = self.queue_size)
+                                          timeout_queue = self._monitor.queue)
 
         self._monitor.out_queue = T.queue
+        self._monitor.timeout = timeout
 
     def start(self):
         log.info('Starting %s' % SERVER_NAME)
@@ -140,10 +141,12 @@ class Rocket:
                 continue
 
             if IS_JYTHON:
-                # Jython requires a socket to be in Non-blocking mode in order to
-                # select on it.
+                # Jython requires a socket to be in Non-blocking mode in order
+                # to select on it.
                 listener.setblocking(False)
 
+            # Listen for new connections allowing self.queue_size number of
+            # connections to wait before rejecting a connection.
             listener.listen(self.queue_size)
 
             self.listeners.append(listener)
@@ -154,7 +157,7 @@ class Rocket:
             sys.exit(1)
 
         msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if l[2] else '') for l in self.listener_dict.values()])
+        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if len(l) > 2 else '') for l in self.listener_dict.values()])
         log.info(msg)
 
         while not self._threadpool.stop_server:

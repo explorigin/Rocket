@@ -38,13 +38,12 @@ class ThreadPool():
                  max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
                  server_name=SERVER_NAME,
-                 timeout_queue=None,
-                 request_queue_size=5):
+                 timeout_queue=None):
 
         log.debug("Initializing.")
         self.check_for_dead_threads = 0
         self.resize_lock = Lock()
-        self.queue = Queue(request_queue_size)
+        self.queue = Queue()
 
         self.worker_class = W = get_method(method)
         self.min_threads = min_threads
@@ -53,9 +52,11 @@ class ThreadPool():
         self.stop_server = False
         self.grow_threshold = int(max_threads/10) + 2
 
-        if isinstance(app_info, dict):
-            app_info.update(max_threads=max_threads,
-                            min_threads=min_threads)
+        if not isinstance(app_info, dict):
+            app_info = dict()
+
+        app_info.update(max_threads=max_threads,
+                        min_threads=min_threads)
 
         W.app_info = app_info
         W.pool = self

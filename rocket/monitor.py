@@ -4,6 +4,7 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
+import time
 import logging
 from select import select
 try:
@@ -16,8 +17,9 @@ from . import IS_JYTHON
 
 class Monitor(Thread):
     # Monitor worker base class.
-    queue = Queue()
+    queue = Queue() # Holds connections to be monitored
     connections = set()
+    timeout = 0
 
     def run(self):
         self.name = self.getName()
@@ -68,8 +70,26 @@ class Monitor(Thread):
                     # that it be in blocking mode.
                     r.setblocking(True)
 
+                r.start_time = time.time()
                 self.out_queue.put(r)
                 self.connections.remove(r)
+
+            # If we have any stale connections, kill them off.
+            if self.timeout:
+                now = time.time()
+                stale = set()
+                for c in self.connections:
+                    if now - c.start_time >= self.timeout:
+                        stale.add(c)
+
+                for c in stale:
+                    data = (c.client_addr, c.server_port, '*' if c.ssl else '')
+                    self.log.debug('Flushing stale connection: %s:%i%s' % data)
+                    self.connections.remove(c)
+                    try:
+                        c.close()
+                    finally:
+                        del c
 
     def stop(self):
         self.log.debug('Flushing waiting connections')
