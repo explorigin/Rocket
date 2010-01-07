@@ -25,8 +25,8 @@ package_imports = re.compile(r'^(\s*from \.[\w\.]* import .*)$', re.I | re.M)
 
 class build_monolithic(Command):
     user_options = []
-    
-    
+    description = "Create a monolithic (one-file) source module."
+
     def initialize_options (self):
         self.files = []
 
@@ -34,7 +34,7 @@ class build_monolithic(Command):
         packages = find_packages()
         for p in packages:
             self.files += sorted(glob(os.sep.join(p.split('.')) + os.sep + '*.py'))
-            
+
     def run(self):
         build = self.get_finalized_command('build')
         filepath = os.path.join(build.build_base, 'monolithic', 'rocket.py')
@@ -50,7 +50,7 @@ class build_monolithic(Command):
             f = open(filename, 'r')
             filedata = f.readlines()
             f.close()
-            
+
             if first:
                 filedata = ''.join(filedata)
                 first = False
@@ -58,7 +58,7 @@ class build_monolithic(Command):
                 filedata = ''.join(filedata[4:])
 
             out.write("# Monolithic build...start of module: %s\r" % filename)
-            
+
             i = 0
             templist = []
             showImportNotice = True
@@ -68,10 +68,9 @@ class build_monolithic(Command):
                     out.write('# package imports removed in monolithic build')
                     showImportNotice = False
                 i = item.end()
-            
+
             out.write(filedata[i:len(filedata)])
 
             out.write("\r# Monolithic build...end of module: %s\r" % filename)
 
         out.close()
-        
