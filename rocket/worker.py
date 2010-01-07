@@ -25,6 +25,11 @@ except ImportError:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+try:
+    from ssl import SSLError
+except ImportError:
+    class SSLError(socket.error):
+        pass
 # Import Package Modules
 from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K
 from .connection import Connection
@@ -49,6 +54,33 @@ class Worker(Thread):
     app_info = None
     timeout = 1
     server_name = SERVER_NAME
+
+    def _handleError(self, typ, val, tb):
+        if typ == SSLError:
+            if 'timed out' in val.args[0]:
+                typ = SocketTimeout
+        if typ == SocketTimeout:
+            self.log.debug('Socket timed out')
+            self.wait_queue.put(self.conn)
+            return True
+        if typ == SocketClosed:
+            self.closeConnection = True
+            self.log.debug('Client closed socket')
+            return False
+        if typ == socket.error:
+            if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
+                self.closeConnection = True
+                self.log.debug('Ignorable socket Error received...'
+                               'closing connection.')
+                return False
+            else:
+                self.log.critical(str(traceback.format_exc()))
+                return False
+
+        self.closeConnection = True
+        self.log.error(str(traceback.format_exc()))
+        self.send_response('500 Server Error')
+        return False
 
     def run(self):
         self.name = self.getName()
@@ -91,25 +123,10 @@ class Worker(Thread):
                 self.log.debug('Serving a request')
                 try:
                     self.run_app(conn)
-                except SocketTimeout:
-                    self.log.debug('Socket timed out')
-                    self.wait_queue.put(conn)
-                    break
-                except SocketClosed:
-                    self.closeConnection = True
-                    self.log.debug('Client closed socket')
-                except socket.error:
-                    info = sys.exc_info()
-                    if info[1].args[0] in IGNORE_ERRORS_ON_CLOSE:
-                        self.closeConnection = True
-                        self.log.debug('Ignorable socket Error received...'
-                                       'closing connection.')
-                    else:
-                        self.log.critical(str(traceback.format_exc()))
                 except:
-                    self.closeConnection = True
-                    self.log.error(str(traceback.format_exc()))
-                    self.send_response('500 Server Error')
+                    handled = self._handleError(*sys.exc_info())
+                    if handled:
+                        break
 
                 if self.closeConnection:
                     conn.close()
@@ -188,7 +205,7 @@ class Worker(Thread):
     def read_headers(self, sock_file):
         headers = dict()
         l = sock_file.readline()
-        
+
         lname = None
         lval = None
         while True:
@@ -199,7 +216,7 @@ class Worker(Thread):
 
             if l == '\r\n':
                 break
-            
+
             if l[0] in ' \t' and lname:
                 # Some headers take more than one line
                 lval += ', ' + l.strip()

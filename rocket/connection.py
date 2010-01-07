@@ -5,6 +5,10 @@
 
 # Import System Modules
 import socket
+try:
+    import ssl
+except ImportError:
+    ssl = None
 # Import Package Modules
 from . import PY3K
 
@@ -14,7 +18,8 @@ class Connection:
         self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
         self.socket = sock_tuple[0]
-        
+        self.ssl = ssl and isinstance(self.socket, ssl.SSLSocket)
+
         for x in dir(self.socket):
             if not hasattr(self, x):
                 self.__dict__[x] = self.socket.__getattribute__(x)

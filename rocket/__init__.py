@@ -9,7 +9,7 @@ import errno
 import platform
 
 # Define Constants
-VERSION = '0.1'
+VERSION = '0.2'
 SERVER_NAME = 'Rocket %s' % VERSION
 HTTP_SERVER_NAME = '%s Python/%s' % (SERVER_NAME, sys.version.split(' ')[0])
 BUF_SIZE = 16384
@@ -61,6 +61,6 @@ else:
 # Import Package Modules
 from .main import Rocket, CherryPyWSGIServer
 
-__all__ = ['VERSION', 'SERVER_NAME', 'HTTP_SERVER_NAME', 'BUF_SIZE', 
+__all__ = ['VERSION', 'SERVER_NAME', 'HTTP_SERVER_NAME', 'BUF_SIZE',
            'IS_JYTHON', 'IGNORE_ERRORS_ON_CLOSE', 'DEFAULTS', 'PY3K', 'b', 'u',
            'Rocket', 'CherryPyWSGIServer']

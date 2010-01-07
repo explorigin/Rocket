@@ -4,6 +4,7 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
+import os
 import sys
 import time
 import signal
@@ -11,6 +12,10 @@ import socket
 import logging
 import traceback
 from select import select
+try:
+    import ssl
+except ImportError:
+    ssl = None
 # Import Package Modules
 from . import DEFAULTS, SERVER_NAME, IS_JYTHON
 from .monitor import Monitor
@@ -47,7 +52,7 @@ class Rocket:
                 self.queue_size = socket.SOMAXCONN
             else:
                 self.queue_size = DEFAULTS['QUEUE_SIZE']
-        
+
         if max_threads and self.queue_size > max_threads:
             self.queue_size = max_threads
 
@@ -85,7 +90,30 @@ class Rocket:
         for i in self.interfaces:
             addr = i[0]
             port = i[1]
+            secure = len(i) > 3 and i[2] and i[3]
+
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            if secure:
+                if not ssl:
+                    log.error("ssl module required to serve HTTPS.")
+                    del listener
+                    continue
+                elif not os.path.exists(i[2]):
+                    data = (i[2], i[0], i[1])
+                    log.error("Cannot find key file "
+                              "'%s'.  Cannot bind to %s:%s" % data)
+                elif not os.path.exists(i[3]):
+                    data = (i[3], i[0], i[1])
+                    log.error("Cannot find certificate file "
+                              "'%s'.  Cannot bind to %s:%s" % data)
+                else:
+                    listener = ssl.wrap_socket(listener,
+                                               keyfile=i[2],
+                                               certfile=i[3],
+                                               server_side=True,
+                                               ssl_version=ssl.PROTOCOL_SSLv23
+                                               )
 
             if not listener:
                 log.error("Failed to get socket.")
@@ -126,7 +154,7 @@ class Rocket:
             sys.exit(1)
 
         msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i' %  (l[0], l[1]) for l in self.listener_dict.values()])
+        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if l[2] else '') for l in self.listener_dict.values()])
         log.info(msg)
 
         while not self._threadpool.stop_server:
