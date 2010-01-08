@@ -14,7 +14,6 @@ except ImportError:
 from . import PY3K
 
 class Connection:
-    # A connection to a client
     def __init__(self, sock_tuple, port):
         self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
@@ -24,7 +23,10 @@ class Connection:
 
         for x in dir(self.socket):
             if not hasattr(self, x):
-                self.__dict__[x] = self.socket.__getattribute__(x)
+                try:
+                    self.__dict__[x] = self.socket.__getattribute__(x)
+                except:
+                    pass
 
     def close(self):
         if hasattr(self.socket, '_sock'):
