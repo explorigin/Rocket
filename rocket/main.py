@@ -168,17 +168,19 @@ class Rocket:
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 return self.stop()
-            except Exception:
-                log.error(str(traceback.format_exc()))
-                continue
+            except:
+                if not self._threadpool.stop_server:
+                    log.error(str(traceback.format_exc()))
+                    continue
 
-        return self.stop()
+        if not self._threadpool.stop_server:
+            self.stop()
 
-    def _sigterm(self):
+    def _sigterm(self, signum, frame):
         log.info('Received SIGTERM')
         self.stop()
 
-    def _sighup(self):
+    def _sighup(self, signum, frame):
         log.info('Received SIGHUP')
         self.restart()
 
