@@ -23,7 +23,7 @@ Rocket can be built into three distributable forms:
 
     setup.py build_sdist
 
-* monolithic module - The monolithic module concatenates all of the individual Rocket modules into one file for easy inclusion in another project.  The command for building a package is::
+* monolithic module - The monolithic module concatenates all of the individual Rocket modules into one file for easy inclusion in another project.  This command is only available after the module has been installed to a location in the system path.  The command for building a package is::
 
     setup.py build_monolithic
 
