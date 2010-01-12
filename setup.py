@@ -44,6 +44,7 @@ setup(name = "Rocket",
       entry_points = {
         "distutils.commands": [
             "build_monolithic = monolithic:build_monolithic",
+            "build_release = release:build_release",
         ],
     }
         
