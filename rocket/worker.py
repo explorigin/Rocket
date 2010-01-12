@@ -75,7 +75,9 @@ class Worker(Thread):
                                'closing connection.')
                 return False
             else:
-                self.log.critical(str(traceback.format_exc()))
+                self.closeConnection = True
+                if not self.pool.stop_server:
+                    self.log.critical(str(traceback.format_exc()))
                 return False
 
         self.closeConnection = True
