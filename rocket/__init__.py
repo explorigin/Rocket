@@ -9,7 +9,7 @@ import errno
 import platform
 
 # Define Constants
-VERSION = '0.2'
+VERSION = '0.2.1'
 SERVER_NAME = 'Rocket %s' % VERSION
 HTTP_SERVER_NAME = '%s Python/%s' % (SERVER_NAME, sys.version.split(' ')[0])
 BUF_SIZE = 16384

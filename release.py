@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2010 Timothy Farrell
 
 """\
 release.py is a module that contains the distutils add-in for creating
-a monolithic source module of the Rocket web server.  To use get a monolithic
-Rocket module first install Rocket normally.  Then run::
+the files used in a release.  It is only intended for the developer and will
+not be used by the target audience. Nevertheless, you can run it like::
 
   setup.py build_release
 
-The resulting monolithic module will be in the build/monolithic/ subdirectory.
+The resulting zip files will be in the build/release/ subdirectory.
 """
 
 import os
@@ -43,17 +43,21 @@ class build_release(Command):
     
     def _run_monolithic(self):
         os.system(sys.executable + ' setup.py build_monolithic')
+        rocket_file = os.path.join(self.builddir, 'monolithic', 'rocket.py')
+        if not os.path.exists(rocket_file):
+            return
         f = zipfile.ZipFile(os.path.join(self.temp,
                                          'Rocket-mono-'+VERSION+'.zip'), 'w')
-        f.write(os.path.join(self.builddir, 'monolithic', 'rocket.py'),
-                'rocket.py')
+        f.write(rocket_file, 'rocket.py')
         f.close()
         
     def _run_docs(self):
         os.system(sys.executable + ' setup.py build_sphinx')
+        sphinxdir = os.path.join(self.builddir, 'sphinx', 'html')
+        if not os.path.exists(sphinxdir):
+            return
         f = zipfile.ZipFile(os.path.join(self.temp,
                                          'Rocket-docs-'+VERSION+'.zip'), 'w')
-        sphinxdir = os.path.join(self.builddir, 'sphinx', 'html')
         for root, dirs, files in os.walk(sphinxdir):
             for filename in files:
                 newroot = root[len(sphinxdir):]
@@ -80,9 +84,18 @@ class build_release(Command):
         f.close()
 
     def run(self):
-        self._run_monolithic()
-        self._run_docs()
-        self._run_src()
+        try:
+            self._run_monolithic()
+        except:
+            pass
+        try:
+            self._run_docs()
+        except:
+            pass
+        try:
+            self._run_src()
+        except:
+            pass
         
        
         
