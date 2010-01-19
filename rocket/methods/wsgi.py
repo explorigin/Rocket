@@ -232,7 +232,7 @@ class WSGIWorker(Worker):
 
             # Send headers if the body was empty
             if not self.headers_sent:
-                self.write('')
+                self.write(b(''))
 
             # If chunked, send our final chunk length
             if self.chunked:
