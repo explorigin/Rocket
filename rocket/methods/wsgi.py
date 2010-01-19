@@ -184,7 +184,10 @@ class WSGIWorker(Worker):
         elif self.header_set:
             raise AssertionError("Headers already set!")
 
-        self.status = str(status, 'ISO-8859-1') if PY3K else status
+        if PY3K and not isinstance(status, str):
+            self.status = str(status, 'ISO-8859-1')
+        else:
+            self.status = status
         # Make sure headers are bytes objects
         try:
             self.header_set = [(h[0].strip(),
