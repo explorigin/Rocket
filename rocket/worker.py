@@ -32,7 +32,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K
+from . import SERVER_NAME, SERVER_SOFTWARE, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K
 from .connection import Connection
 
 # Define Constants
@@ -54,7 +54,7 @@ class Worker(Thread):
     queue = None
     app_info = None
     timeout = 1
-    server_name = SERVER_NAME
+    server_software = SERVER_SOFTWARE
 
     def _handleError(self, typ, val, tb):
         if typ == SSLError:

@@ -11,14 +11,14 @@ from email.utils import formatdate
 from wsgiref.simple_server import demo_app
 from wsgiref.util import FileWrapper
 # Import Package Modules
-from .. import HTTP_SERVER_NAME, b, u, BUF_SIZE, PY3K
+from .. import HTTP_SERVER_NAME, SERVER_NAME, b, u, BUF_SIZE, PY3K, 
 from ..worker import Worker, ChunkedReader
 
 # Define Constants
 HEADER_LINE = '%s: %s\r\n'
 NEWLINE = b('\r\n')
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
-BASE_ENV = {'SERVER_NAME': socket.gethostname(),
+BASE_ENV = {'SERVER_NAME': SERVER_NAME,
             'wsgi.errors': sys.stderr,
             'wsgi.version': (1, 0),
             'wsgi.multiprocess': False,
@@ -34,7 +34,7 @@ class WSGIWorker(Worker):
             multithreaded = self.app_info.get('max_threads') != 1
         else:
             multithreaded = False
-        self.base_environ = dict({'SERVER_SOFTWARE': self.server_name,
+        self.base_environ = dict({'SERVER_SOFTWARE': self.server_software,
                                   'wsgi.multithread': multithreaded,
                                   })
         self.base_environ.update(BASE_ENV)
@@ -105,7 +105,7 @@ class WSGIWorker(Worker):
 
         # Add a Server header if it's not there already
         if not 'server' in header_dict:
-            self.header_set.append(('Server', HTTP_SERVER_NAME))
+            self.header_set.append(('Server', HTTP_SERVER_SOFTWARE))
 
         if 'content-length' not in header_dict:
             s = int(self.status.split(' ')[0])

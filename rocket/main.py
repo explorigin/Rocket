@@ -62,14 +62,14 @@ class Rocket:
                                           app_info = app_info,
                                           min_threads=min_threads,
                                           max_threads=max_threads,
-                                          server_name=SERVER_NAME,
+                                          server_software=SERVER_SOFTWARE,
                                           timeout_queue = self._monitor.queue)
 
         self._monitor.out_queue = T.queue
         self._monitor.timeout = timeout
 
     def start(self):
-        log.info('Starting %s' % SERVER_NAME)
+        log.info('Starting %s' % SERVER_SOFTWARE)
 
         # Set up our shutdown signals
         try:

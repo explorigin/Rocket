@@ -37,7 +37,7 @@ class ThreadPool():
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
-                 server_name=SERVER_NAME,
+                 server_software=SERVER_SOFTWARE,
                  timeout_queue=None):
 
         log.debug("Initializing.")
@@ -60,7 +60,7 @@ class ThreadPool():
 
         W.app_info = app_info
         W.pool = self
-        W.server_name = server_name
+        W.server_software = server_software
         W.queue = self.queue
         W.wait_queue = self.timeout_queue
         W.timeout = max_threads * 0.2 if max_threads != 0 else 2
@@ -68,6 +68,7 @@ class ThreadPool():
         self.threads = set([self.worker_class() for x in range(min_threads)])
 
     def start(self):
+        self.stop_server = False
         log.debug("Starting threads.")
         for thread in self.threads:
             thread.daemon = True
