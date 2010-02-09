@@ -56,8 +56,7 @@ class build_monolithic(Command):
                 first = False
             else:
                 filedata = ''.join(filedata[4:])
-
-            out.write("# Monolithic build...start of module: %s\r" % filename)
+                out.write("# Monolithic build...start of module: %s\r" % filename)
 
             i = 0
             templist = []

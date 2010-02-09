@@ -56,7 +56,7 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
 
 .. _interfaces:
 
-* interfaces_ - Either a tuple or list of tuples that specify the listening socket information.  Each tuple contains a string-based IP address, an integer port number and, optionally, a keyfile and a certfile.  For example::
+* interfaces_ - Either a tuple or list of tuples that specify the listening socket information.  Each tuple contains a string-based IP address, an integer port number and, optionally, a key file path and a certificate file path.  For example::
 
     ('127.0.0.1', 80)
 
@@ -65,7 +65,7 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
     [('0.0.0.0', 80),
      ('0.0.0.0', 443, 'server_key.pem', 'server_cert.pem')]
 
- will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.
+ will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.  Note that if you are using Rocket on a version of Python less than 2.6, you will have to install the `ssl module <http://pypi.python.org/pypi/ssl>`_ manually since the HTTPS feature depends on it.  
 
  **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass and interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
 
