@@ -17,16 +17,13 @@ try:
 except ImportError:
     ssl = None
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON
+from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler
 from .monitor import Monitor
 from .threadpool import ThreadPool
 
 # Setup Logging
 log = logging.getLogger('Rocket')
-try:
-    log.addHandler(logging.NullHandler())
-except:
-    pass
+log.addHandler(NullHandler())
 
 class Rocket:
     """The Rocket class is responsible for handling threads and accepting and
@@ -76,7 +73,7 @@ class Rocket:
             signal.signal(signal.SIGTERM, self._sigterm)
             signal.signal(signal.SIGUSR1, self._sighup)
         except:
-            log.info('This platform does not support signals.')
+            log.debug('This platform does not support signals.')
 
         # Start our worker threads
         self._threadpool.start()

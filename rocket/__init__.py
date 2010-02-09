@@ -7,6 +7,7 @@
 import sys
 import errno
 import socket
+import logging
 import platform
 
 # Define Constants
@@ -25,6 +26,11 @@ DEFAULTS = dict(LISTEN_QUEUE_SIZE = DEFAULT_LISTEN_QUEUE_SIZE,
                 MAX_THREADS = DEFAULT_MAX_THREADS)
 
 PY3K = sys.version_info[0] > 2
+
+class NullHandler(logging.Handler):
+    "A Logging handler to prevent library errors."
+    def emit(self, record):
+        pass
 
 if PY3K:
     def b(val):
@@ -65,4 +71,4 @@ from .main import Rocket, CherryPyWSGIServer
 
 __all__ = ['VERSION', 'SERVER_SOFTWARE', 'HTTP_SERVER_SOFTWARE', 'BUF_SIZE',
            'IS_JYTHON', 'IGNORE_ERRORS_ON_CLOSE', 'DEFAULTS', 'PY3K', 'b', 'u',
-           'Rocket', 'CherryPyWSGIServer', 'SERVER_NAME']
+           'Rocket', 'CherryPyWSGIServer', 'SERVER_NAME', 'NullHandler']

@@ -10,11 +10,12 @@ import time
 import socket
 import logging
 import traceback
+from threading import Thread
+from datetime import datetime
 try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
-from threading import Thread
 try:
     from urllib import unquote
 except ImportError:
@@ -32,11 +33,12 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, SERVER_SOFTWARE, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K
+from . import SERVER_NAME, SERVER_SOFTWARE, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
 from .connection import Connection
 
 # Define Constants
 re_SLASH = re.compile('%2F', re.IGNORECASE)
+LOG_LINE = '%(client_ip)s - "%(request_line)s" - %(status)s %(size)s'
 RESPONSE = '''\
 HTTP/1.1 %s
 Content-Length: %i
@@ -86,12 +88,8 @@ class Worker(Thread):
         return False
 
     def run(self):
-        self.name = self.getName()
-        self.log = logging.getLogger('Rocket.%s' % self.name)
-        try:
-            self.log.addHandler(logging.NullHandler())
-        except:
-            pass
+        self.log = logging.getLogger('Rocket')
+        self.log.addHandler(NullHandler())
         self.log.debug('Entering main loop.')
 
         # Enter thread main loop
@@ -134,8 +132,13 @@ class Worker(Thread):
                 if self.closeConnection:
                     conn.close()
                     break
-                else:
-                    conn.start_time = time.time()
+                log_info = dict(client_ip = conn.client_addr,
+                                time = datetime.now().strftime('%c'),
+                                status = self.status.split(' ')[0],
+                                size = self.size,
+                                request_line = self.request_line
+                                )
+                self.log.info(LOG_LINE % log_info)
 
     def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket
@@ -179,7 +182,8 @@ class Worker(Thread):
             raise SocketClosed('Client closed socket.')
 
         try:
-            method, uri, proto = d.strip().split(' ')
+            self.request_line = d.strip()
+            method, uri, proto = self.request_line.split(' ')
         except ValueError:
             # FIXME - Raise 400 Bad Request
             raise

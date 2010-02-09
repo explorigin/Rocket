@@ -50,7 +50,7 @@ class WSGIWorker(Worker):
         """ Build the execution environment. """
         # Grab the request line
         request = self.read_request_line(sock_file)
-
+        
         # Grab the headers
         self.headers = self.read_headers(sock_file)
 
@@ -98,7 +98,7 @@ class WSGIWorker(Worker):
 
         # Does the app want us to send output chunked?
         self.chunked = header_dict.get('transfer-encoding', '').lower() == 'chunked'
-
+        
         # Add a Date header if it's not there already
         if not 'date' in header_dict:
             self.header_set.append(('Date', formatdate(usegmt=True)))
@@ -114,12 +114,15 @@ class WSGIWorker(Worker):
                     if sections == 1:
                         # Add a Content-Length header if it's not there already
                         self.header_set.append(('Content-Length', len(data)))
+                        self.size = len(data)
                     else:
                         # If they sent us more than one section, we blow chunks
                         self.header_set.append(('Transfer-Encoding', 'Chunked'))
                         self.chunked = True
                         self.log.debug('Adding header...Transfer-Encoding: '
                                        'Chunked')
+        else:
+            self.size = int(header_dict['content-length'])
 
         # If the client or application asks to keep the connection alive, do so.
         conn = header_dict.get('connection', '').lower()
@@ -201,6 +204,7 @@ class WSGIWorker(Worker):
         return self.write_warning
 
     def run_app(self, conn):
+        self.size = 0
         self.header_set = []
         self.headers_sent = False
         self.error = (None, None)
