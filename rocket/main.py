@@ -17,7 +17,7 @@ try:
 except ImportError:
     ssl = None
 # Import Package Modules
-from . import DEFAULTS, SERVER_NAME, IS_JYTHON
+from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON
 from .monitor import Monitor
 from .threadpool import ThreadPool
 

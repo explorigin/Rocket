@@ -15,7 +15,7 @@ try:
 except ImportError:
     from Queue import Queue
 # Import Package Modules
-from . import DEFAULTS, SERVER_NAME
+from . import DEFAULTS, SERVER_SOFTWARE
 from .worker import get_method
 
 # Setup Logging

@@ -11,7 +11,7 @@ from email.utils import formatdate
 from wsgiref.simple_server import demo_app
 from wsgiref.util import FileWrapper
 # Import Package Modules
-from .. import HTTP_SERVER_NAME, SERVER_NAME, b, u, BUF_SIZE, PY3K, 
+from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, u, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
 
 # Define Constants
