@@ -119,8 +119,8 @@ class WSGIWorker(Worker):
                         # If they sent us more than one section, we blow chunks
                         self.header_set.append(('Transfer-Encoding', 'Chunked'))
                         self.chunked = True
-                        self.log.debug('Adding header...Transfer-Encoding: '
-                                       'Chunked')
+                        self.err_log.debug('Adding header...Transfer-Encoding: '
+                                           'Chunked')
         else:
             self.size = int(header_dict['content-length'])
 
@@ -140,13 +140,13 @@ class WSGIWorker(Worker):
         header_data = HEADER_RESPONSE % (self.status, serialized_headers)
 
         # Send the headers
-        self.log.debug('Sending Headers: %s' % header_data.__repr__())
+        self.err_log.debug('Sending Headers: %s' % header_data.__repr__())
         self.conn.sendall(b(header_data))
         self.headers_sent = True
 
     def write_warning(self, data, sections=None):
-        self.log.warning('WSGI app called write method directly.  This is '
-                         'obsolete behavior.  Please update your app.')
+        self.err_log.warning('WSGI app called write method directly.  This is '
+                             'obsolete behavior.  Please update your app.')
         return self.write(data, sections)
 
     def write(self, data, sections=None):
@@ -198,8 +198,8 @@ class WSGIWorker(Worker):
         except UnicodeDecodeError:
             self.error = ('500 Internal Server Error',
                           'HTTP Headers should be bytes')
-            self.log.error('Received HTTP Headers from client that contain'
-                           ' invalid characters for Latin-1 encoding.')
+            self.err_log.error('Received HTTP Headers from client that contain'
+                               ' invalid characters for Latin-1 encoding.')
 
         return self.write_warning
 
@@ -211,7 +211,7 @@ class WSGIWorker(Worker):
         sections = None
         output = None
 
-        self.log.debug('Getting sock_file')
+        self.err_log.debug('Getting sock_file')
         # Build our file-like object
         sock_file = conn.makefile('rb',BUF_SIZE)
 
@@ -243,7 +243,7 @@ class WSGIWorker(Worker):
                 self.conn.sendall(b('0\r\n\r\n'))
 
         finally:
-            self.log.debug('Finally closing output and sock_file')
+            self.err_log.debug('Finally closing output and sock_file')
             if hasattr(output,'close'):
                 output.close()
 

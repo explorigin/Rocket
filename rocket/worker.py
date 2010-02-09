@@ -63,34 +63,36 @@ class Worker(Thread):
             if 'timed out' in val.args[0]:
                 typ = SocketTimeout
         if typ == SocketTimeout:
-            self.log.debug('Socket timed out')
+            self.err_log.debug('Socket timed out')
             self.wait_queue.put(self.conn)
             return True
         if typ == SocketClosed:
             self.closeConnection = True
-            self.log.debug('Client closed socket')
+            self.err_log.debug('Client closed socket')
             return False
         if typ == socket.error:
             if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
                 self.closeConnection = True
-                self.log.debug('Ignorable socket Error received...'
-                               'closing connection.')
+                self.err_log.debug('Ignorable socket Error received...'
+                                   'closing connection.')
                 return False
             else:
                 self.closeConnection = True
                 if not self.pool.stop_server:
-                    self.log.critical(str(traceback.format_exc()))
+                    self.err_log.critical(str(traceback.format_exc()))
                 return False
 
         self.closeConnection = True
-        self.log.error(str(traceback.format_exc()))
+        self.err_log.error(str(traceback.format_exc()))
         self.send_response('500 Server Error')
         return False
 
     def run(self):
-        self.log = logging.getLogger('Rocket')
-        self.log.addHandler(NullHandler())
-        self.log.debug('Entering main loop.')
+        self.req_log = logging.getLogger('Rocket.Requests')
+        self.err_log = logging.getLogger('Rocket.Errors')
+        self.req_log.addHandler(NullHandler())
+        self.err_log.addHandler(NullHandler())
+        self.err_log.debug('Entering main loop.')
 
         # Enter thread main loop
         while True:
@@ -102,7 +104,7 @@ class Worker(Thread):
 
             if not conn:
                 # A non-client is a signal to die
-                self.log.debug('Received a death threat.')
+                self.err_log.debug('Received a death threat.')
                 return
 
             self.conn = conn
@@ -112,7 +114,7 @@ class Worker(Thread):
                 # See: http://bugs.jython.org/issue1309
                 conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-            self.log.debug('Received a connection.')
+            self.err_log.debug('Received a connection.')
 
             if hasattr(conn,'settimeout') and self.timeout:
                 conn.settimeout(self.timeout)
@@ -121,7 +123,7 @@ class Worker(Thread):
 
             # Enter connection serve loop
             while True:
-                self.log.debug('Serving a request')
+                self.err_log.debug('Serving a request')
                 try:
                     self.run_app(conn)
                 except:
@@ -138,7 +140,7 @@ class Worker(Thread):
                                 size = self.size,
                                 request_line = self.request_line
                                 )
-                self.log.info(LOG_LINE % log_info)
+                self.req_log.info(LOG_LINE % log_info)
 
     def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket
@@ -151,7 +153,7 @@ class Worker(Thread):
             self.conn.sendall(b(msg))
         except socket.error:
             self.closeConnection = True
-            self.log.error('Tried to send "%s" to client but received socket'
+            self.err_log.error('Tried to send "%s" to client but received socket'
                            ' error' % status)
 
     def kill(self):
@@ -161,7 +163,7 @@ class Worker(Thread):
             except socket.error:
                 info = sys.exc_info()
                 if info[1].args[0] != socket.EBADF:
-                    self.log.debug('Error on shutdown: '+str(info))
+                    self.err_log.debug('Error on shutdown: '+str(info))
 
     def read_request_line(self, sock_file):
         try:
@@ -171,14 +173,14 @@ class Worker(Thread):
 
             if d == '\r\n':
                 # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
-                self.log.debug('Client sent newline')
+                self.err_log.debug('Client sent newline')
                 d = sock_file.readline()
                 d = d.decode('ISO-8859-1') if PY3K else d
         except socket.timeout:
             raise SocketTimeout("Socket timed out before request.")
 
         if d.strip() == '':
-            self.log.debug('Client did not send a recognizable request.')
+            self.err_log.debug('Client did not send a recognizable request.')
             raise SocketClosed('Client closed socket.')
 
         try:
@@ -221,7 +223,7 @@ class Worker(Thread):
             try:
                 l = str(l, 'ISO-8859-1') if PY3K else l
             except UnicodeDecodeError:
-                self.log.warning('Client sent invalid header: ' + l.__repr__())
+                self.err_log.warning('Client sent invalid header: ' + l.__repr__())
 
             if l == '\r\n':
                 break
@@ -296,14 +298,14 @@ class TestWorker(Worker):
         sock_file = conn.makefile('rb', BUF_SIZE)
         n = sock_file.readline().strip()
         while n:
-            self.log.debug(n)
+            self.err_log.debug(n)
             n = sock_file.readline().strip()
 
         response = self.HEADER_RESPONSE % ('200 OK', 'Content-type: text/html')
         response += '\r\n<h1>It Works!</h1>'
 
         try:
-            self.log.debug(response)
+            self.err_log.debug(response)
             conn.sendall(b(response))
         finally:
             sock_file.close()

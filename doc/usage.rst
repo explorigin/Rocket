@@ -26,17 +26,25 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
 
     server = CherryPyWSGIServer(('127.0.0.1', 80), demo_app)
     server.start()
+    
+See the `API Reference`_ below for more details on all available options.
 
 Logging
 =======
 
-Rocket uses the standard Python logging module for logging.  To log messages to a file, do something like this before running Rocket().start()::
+Rocket uses the standard Python logging module for logging.  It provides three classes of logs:
+
+    1) "Rocket.Requests" - HTTP Requests are logged here at the *INFO* level.
+    2) "Rocket.Errors" - Errors are logged here at the appropriate level.
+    3) "Rocket" - This log class will encompass all log messages
+
+To log messages to a file, do something like this before running Rocket().start()::
 
     import logging
+    import logging.handlers
     log = logging.getLogger('Rocket')
     log.setLevel(logging.INFO)
-    h = logging.FileHandler('rocket.log')
-    log.addHandler(h)
+    log.addHandler(logging.handlers.FileHandler('rocket.log'))
 
 API Reference
 =============
@@ -128,12 +136,20 @@ CherryPyWSGIServer(interface_, wsgi_app_, numthreads_, server_name_, max_, reque
 Instances
 ---------
 
-An instance of Rocket (or CherryPyWSGIServer) has only one method for external use:
+An instance of Rocket (or CherryPyWSGIServer) two methods for external use:
 
 * start() - Start the main server loop.  This call will block until server execution is interrupted by:
     - KeyboardInterrupt for a server running in a console.
     - The process receives a SIGTERM or SIGHUP signal for platforms that support signals.
     - A running thread signals the server to stop.
+    - An external thread calls the stop_ method.
+
+.. _stop:
+
+* stop(stoplogging=True) - This method will:
+    - timeout and close all active connections
+    - stop all worker and monitor threads
+    - if the *stoplogging* parameter is set to **False**, all logging objects will be preserved should the server be restarted.
 
 Architecture Considerations
 ===========================
@@ -141,7 +157,7 @@ Architecture Considerations
 The Short Story
 ---------------
 
-For Jython running CPU bound applications, use 1.5 times the number of CPU cores for both min_threads_ and max_threads_.
+For Jython running **CPU-bound** applications, use 1.5 times the number of CPU cores for both min_threads_ and max_threads_.
 
 For cPython, use a reasonable number of min_threads_ (10 for a small server or development server, 64 for a production server) with no limit set to max_threads_.
 
@@ -151,6 +167,7 @@ Explanation
 
 Rocket is tested to run with both cPython and Jython.  Which are very different platforms from a concurrency perspective.  This has an impact on how Rocket should be configured on each platform.
 
-Because of its GIL, cPython is keeps one process on one CPU regardless of the number of running threads.  Threads are used in cPython to allow other work to go on while some portions are blocked on external (to Python) operations.  For this reason, it is advantageous to have a large number of threads running.
+Because of its GIL, cPython keeps one process on one CPU regardless of the number of running threads.  Threads are used in cPython to allow other work to go on while some portions are blocked on external operations such as database queries or file reads.  For this reason, it is advantageous to have a large number of threads running.
 
-Jython, on the other hand, has no GIL and is fully multi-threaded with fine-grained locking.  The downside of this is that many threads will sit and lock on global resources.  Starvation is a major problem for CPU-bound servers.  If your web application is largely I/O bound, then a large number of threads is perfectly fine.  But for CPU bound applications, having a large number of threads will dramatically decrease the performance of Rocket on Jython.  The recommended number for max_threads_ for Rocket on CPU-bound applications is 1.5 * the number of CPU-cores.  For example, a server with 2 dual-core processors has 8 cores.  The recommended maximum number of threads for Jython would be 12.  Since this is such a low number, setting max_threads_ and min_threads_ to an equal number will prevent the threadpool from dynamically flexing the thread pool (thus saving a little more processor power).
+Jython, on the other hand, has no GIL and is fully multi-threaded with fine-grained locking.  The downside of this is that many threads will sit and lock on global resources.  Starvation is a major problem for **CPU-bound** servers with a high number of threads.  If your web application is largely I/O bound, then a large number of threads is perfectly fine.  But for CPU-bound applications, having a large number of threads will dramatically decrease the performance of Rocket on Jython.  The recommended number for max_threads_ for Rocket on CPU-bound applications is 1.5 * the number of CPU-cores.  For example, a server with 2 dual-core processors has 4 cores.  The recommended maximum number of threads for Jython would be 6 for CPU-bound applications.  Since this is such a low number compared to the cPython recommendations, setting max_threads_ and min_threads_ to an equal number will prevent the threadpool from dynamically flexing the thread pool (thus saving a little more processor power).
+
