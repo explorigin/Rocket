@@ -52,7 +52,7 @@ class WSGIWorker(Worker):
         request = self.read_request_line(sock_file)
         
         # Grab the headers
-        self.headers = self.read_headers(sock_file)
+        self.headers = dict([(str('HTTP_'+k.upper()), v) for k, v in self.read_headers(sock_file).items()])
 
         # Copy the Base Environment
         environ = dict(self.base_environ)
@@ -140,7 +140,7 @@ class WSGIWorker(Worker):
         header_data = HEADER_RESPONSE % (self.status, serialized_headers)
 
         # Send the headers
-        self.err_log.debug('Sending Headers: %s' % header_data.__repr__())
+        self.err_log.debug('Sending Headers: %s' % repr(header_data))
         self.conn.sendall(b(header_data))
         self.headers_sent = True
 

@@ -42,7 +42,7 @@ LOG_LINE = '%(client_ip)s - "%(request_line)s" - %(status)s %(size)s'
 RESPONSE = '''\
 HTTP/1.1 %s
 Content-Length: %i
-Content-Type: text/plain
+Content-Type: %s
 
 %s
 '''
@@ -133,25 +133,30 @@ class Worker(Thread):
                     handled = self._handleError(*sys.exc_info())
                     if handled:
                         break
+                finally:
+                    log_info = dict(client_ip = conn.client_addr,
+                                    time = datetime.now().strftime('%c'),
+                                    status = self.status.split(' ')[0],
+                                    size = self.size,
+                                    request_line = self.request_line
+                                    )
+                    self.req_log.info(LOG_LINE % log_info)
 
                 if self.closeConnection:
                     conn.close()
                     break
-                log_info = dict(client_ip = conn.client_addr,
-                                time = datetime.now().strftime('%c'),
-                                status = self.status.split(' ')[0],
-                                size = self.size,
-                                request_line = self.request_line
-                                )
-                self.req_log.info(LOG_LINE % log_info)
 
     def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket
         # and sends a response.
+        self.closeConnection = True
         raise NotImplementedError('Overload this method!')
 
-    def send_response(self, status, disconnect=False):
-        msg = RESPONSE % (status, len(status), status.split(' ', 1)[1])
+    def send_response(self, status, disconnect=False, content_type='text/plain'):
+        msg = RESPONSE % (status,
+                          len(status),
+                          content_type,
+                          status.split(' ', 1)[1])
         try:
             self.conn.sendall(b(msg))
         except socket.error:
@@ -239,7 +244,6 @@ class Worker(Thread):
                 l = l.split(':', 1)
                 # HTTP header names are us-ascii encoded
                 lname = l[0].strip().replace('-', '_')
-                lname = 'HTTP_'+lname.upper()
                 lval = l[-1].strip()
             headers.update({str(lname): str(lval)})
 
@@ -315,7 +319,9 @@ class TestWorker(Worker):
 
 def get_method(method):
     from .methods.wsgi import WSGIWorker
+    from .methods.fs import FileSystemWorker
     methods = dict(test=TestWorker,
-                   wsgi=WSGIWorker)
+                   wsgi=WSGIWorker,
+                   fs=FileSystemWorker)
 
     return methods.get(method.lower(), TestWorker)
