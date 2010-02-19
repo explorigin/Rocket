@@ -58,6 +58,13 @@ class Worker(Thread):
     timeout = 1
     server_software = SERVER_SOFTWARE
 
+    def __init__(self, *args, **kwargs):
+        Thread.__init__(self, *args, **kwargs)
+        self.req_log = logging.getLogger('Rocket.Requests')
+        self.err_log = logging.getLogger('Rocket.Errors.'+self.name)
+        self.req_log.addHandler(NullHandler())
+        self.err_log.addHandler(NullHandler())
+
     def _handleError(self, typ, val, tb):
         if typ == SSLError:
             if 'timed out' in val.args[0]:
@@ -88,10 +95,6 @@ class Worker(Thread):
         return False
 
     def run(self):
-        self.req_log = logging.getLogger('Rocket.Requests')
-        self.err_log = logging.getLogger('Rocket.Errors')
-        self.req_log.addHandler(NullHandler())
-        self.err_log.addHandler(NullHandler())
         self.err_log.debug('Entering main loop.')
 
         # Enter thread main loop

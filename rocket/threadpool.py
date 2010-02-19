@@ -1,34 +1,29 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2010 Timothy Farrell
 
 # Import System Modules
 import sys
 import time
 import socket
 import logging
-import traceback
 from threading import Lock
 try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE
+from . import DEFAULTS, SERVER_SOFTWARE, NullHandler
 from .worker import get_method
 
 # Setup Logging
-log = logging.getLogger('Rocket.ThreadPool')
-try:
-    log.addHandler(logging.NullHandler())
-except:
-    pass
+log = logging.getLogger('Rocket.Errors.ThreadPool')
+log.addHandler(NullHandler())
 
-class ThreadPool():
+class ThreadPool:
     """The ThreadPool class is a container class for all the worker threads. It
     manages the number of actively running threads."""
-    # Web worker base class.
     queue = None
     threads = set()
 
@@ -40,7 +35,7 @@ class ThreadPool():
                  server_software=SERVER_SOFTWARE,
                  timeout_queue=None):
 
-        log.debug("Initializing.")
+        log.debug("Initializing ThreadPool.")
         self.check_for_dead_threads = 0
         self.resize_lock = Lock()
         self.queue = Queue()
