@@ -129,18 +129,24 @@ class Worker(Thread):
                 self.err_log.debug('Serving a request')
                 try:
                     self.run_app(conn)
-                except:
-                    handled = self._handleError(*sys.exc_info())
-                    if handled:
-                        break
-                finally:
                     log_info = dict(client_ip = conn.client_addr,
                                     time = datetime.now().strftime('%c'),
                                     status = self.status.split(' ')[0],
                                     size = self.size,
-                                    request_line = self.request_line
-                                    )
+                                    request_line = self.request_line)
                     self.req_log.info(LOG_LINE % log_info)
+                except:
+                    handled = self._handleError(*sys.exc_info())
+                    if handled:
+                        break
+                    else:
+                        log_info = dict(client_ip = conn.client_addr,
+                                        time = datetime.now().strftime('%c'),
+                                        status = self.status.split(' ')[0],
+                                        size = self.size,
+                                        request_line = self.request_line)
+                        self.req_log.info(LOG_LINE % log_info)
+
 
                 if self.closeConnection:
                     conn.close()

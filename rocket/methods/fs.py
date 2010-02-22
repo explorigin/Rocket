@@ -20,6 +20,17 @@ from ..worker import Worker
 CHUNK_SIZE = 2**16 # 64 Kilobyte chunks
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s'''
 
+class LimitingFileWrapper(FileWrapper):
+    def __init__(self, limit=None, *args, **kwargs):
+        self.limit = limit
+        FileWrapper.__init__(self, *args, **kwargs)
+    
+    def read(self, amt):
+        if amt > self.limit:
+            amt = self.limit
+        self.limit -= amt
+        return FileWrapper.read(self, amt)
+
 class FileSystemWorker(Worker):
     def __init__(self):
         """Builds some instance variables that will last the life of the
@@ -41,7 +52,7 @@ class FileSystemWorker(Worker):
             self.status = "304 Not Modified"
             self.data = []
             return
-        # TODO: Implement 206 partial file support.
+        
         ct = mimetypes.guess_type(filepath)[0]
         self.content_type = ct if ct else 'text/plain'
         try:
@@ -53,8 +64,21 @@ class FileSystemWorker(Worker):
                 h.add_header('Etag', self.etag)
             if self.expires:
                 h.add_header('Expires', self.expires)
-            
-            self.data = FileWrapper(f, CHUNK_SIZE)
+
+            try:
+                # Implement 206 partial file support.
+                start, end = headers['range'].split('-')
+                start = 0 if not start.isdigit() else int(start)
+                end = self.size if not end.isdigit() else int(end)
+                if self.size < end or start < 0:
+                    self.status = "214 Unsatisfiable Range Requested"
+                    self.data = FileWrapper(f, CHUNK_SIZE)
+                else:
+                    f.seek(start)
+                    self.data = LimitingFileWrapper(f, CHUNK_SIZE, limit=end)
+                    self.status = "206 Partial Content"
+            except:
+                self.data = FileWrapper(f, CHUNK_SIZE)
         except IOError:
             self.status = "403 Forbidden"
 
