@@ -145,7 +145,8 @@ class Worker(Thread):
                                         status = self.status.split(' ')[0],
                                         size = self.size,
                                         request_line = self.request_line)
-                        self.req_log.info(LOG_LINE % log_info)
+                        if not self.pool.stop_server:
+                            self.req_log.info(LOG_LINE % log_info)
 
 
                 if self.closeConnection:

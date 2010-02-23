@@ -7,6 +7,7 @@
 import os
 import sys
 import socket
+import traceback
 from email.utils import formatdate
 from wsgiref.simple_server import demo_app
 from wsgiref.util import FileWrapper
@@ -241,6 +242,14 @@ class WSGIWorker(Worker):
             # If chunked, send our final chunk length
             if self.chunked:
                 self.conn.sendall(b('0\r\n\r\n'))
+
+        except socket.error:
+            raise
+
+        except:
+            self.status = "500 Server Error"
+            self.closeConnection = True
+            self.err_log.debug('Error not trapped from WSGI app:\n' + traceback.format_exc())
 
         finally:
             self.err_log.debug('Finally closing output and sock_file')
