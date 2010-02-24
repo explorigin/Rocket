@@ -10,6 +10,7 @@ import time
 import socket
 import logging
 import traceback
+from wsgiref.headers import Headers
 from threading import Thread
 from datetime import datetime
 try:
@@ -78,15 +79,17 @@ class Worker(Thread):
             self.err_log.debug('Client closed socket')
             return False
         if typ == socket.error:
+            self.closeConnection = True
             if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
                 self.closeConnection = True
                 self.err_log.debug('Ignorable socket Error received...'
                                    'closing connection.')
                 return False
             else:
-                self.closeConnection = True
+                self.status = "999 Utter Server Failure"
                 if not self.pool.stop_server:
-                    self.err_log.critical(str(traceback.format_exc()))
+                    tb = traceback.format_exception(*exc)
+                    self.err_log.warning('Unhandled Error when serving connection:\n' + tb)
                 return False
 
         self.closeConnection = True
@@ -141,9 +144,6 @@ class Worker(Thread):
                     if handled:
                         break
                     else:
-                        if not self.pool.stop_server:
-                            tb = traceback.format_exception(*exc)
-                            self.err_log.warning('Unhandled Error when serving connection:\n' + tb)
                         if self.request_line and not self.pool.stop_server:
                             log_info = dict(client_ip = conn.client_addr,
                                             time = datetime.now().strftime('%c'),
@@ -151,7 +151,6 @@ class Worker(Thread):
                                             size = self.size,
                                             request_line = self.request_line + ' - not stopping')
                             self.req_log.info(LOG_LINE % log_info)
-
 
                 if self.closeConnection:
                     conn.close()
@@ -234,7 +233,7 @@ class Worker(Thread):
         return req
 
     def read_headers(self, sock_file):
-        headers = dict()
+        headers = Headers([])
         l = sock_file.readline()
 
         lname = None
@@ -257,7 +256,7 @@ class Worker(Thread):
                 # HTTP header names are us-ascii encoded
                 lname = l[0].strip().replace('-', '_')
                 lval = l[-1].strip()
-            headers.update({str(lname): str(lval)})
+            headers[str(lname)] = str(lval)
 
             l = sock_file.readline()
         return headers

@@ -9,16 +9,15 @@ import sys
 import socket
 import traceback
 from email.utils import formatdate
-from wsgiref.simple_server import demo_app
+from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 # Import Package Modules
 from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, u, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
 
 # Define Constants
-HEADER_LINE = '%s: %s\r\n'
 NEWLINE = b('\r\n')
-HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
+HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s'''
 BASE_ENV = {'SERVER_NAME': SERVER_NAME,
             'wsgi.errors': sys.stderr,
             'wsgi.version': (1, 0),
@@ -40,11 +39,8 @@ class WSGIWorker(Worker):
                                   })
         self.base_environ.update(BASE_ENV)
         # Grab our application
-        if isinstance(self.app_info, dict):
-            self.app = self.app_info.get('wsgi_app', demo_app)
-        else:
-            self.app = demo_app
-
+        self.app = self.app_info['wsgi_app']
+        
         Worker.__init__(self)
 
     def build_environ(self, sock_file, conn):
@@ -94,51 +90,47 @@ class WSGIWorker(Worker):
         return environ
 
     def send_headers(self, data, sections):
-        # Before the first output, send the stored headers
-        header_dict = dict([(x.lower(), y) for (x,y) in self.header_set])
-
+        h_set = self.header_set
         # Does the app want us to send output chunked?
-        self.chunked = header_dict.get('transfer-encoding', '').lower() == 'chunked'
+        self.chunked = h_set.get('transfer-encoding', '').lower() == 'chunked'
         
         # Add a Date header if it's not there already
-        if not 'date' in header_dict:
-            self.header_set.append(('Date', formatdate(usegmt=True)))
+        if not 'date' in h_set:
+            h_set['Date'] = formatdate(usegmt=True)
 
         # Add a Server header if it's not there already
-        if not 'server' in header_dict:
-            self.header_set.append(('Server', HTTP_SERVER_SOFTWARE))
+        if not 'server' in h_set:
+            h_set['Server'] = HTTP_SERVER_SOFTWARE
 
-        if 'content-length' not in header_dict:
+        if 'content-length' in h_set:
+            self.size = int(h_set['content-length'])
+        else:
             s = int(self.status.split(' ')[0])
             if s < 200 or s not in (204, 205, 304):
                 if not self.chunked:
                     if sections == 1:
                         # Add a Content-Length header if it's not there already
-                        self.header_set.append(('Content-Length', len(data)))
+                        h_set['Content-Length'] = len(data)
                         self.size = len(data)
                     else:
                         # If they sent us more than one section, we blow chunks
-                        self.header_set.append(('Transfer-Encoding', 'Chunked'))
+                        h_set['Transfer-Encoding'] = 'Chunked'
                         self.chunked = True
                         self.err_log.debug('Adding header...Transfer-Encoding: '
                                            'Chunked')
-        else:
-            self.size = int(header_dict['content-length'])
 
         # If the client or application asks to keep the connection alive, do so.
-        conn = header_dict.get('connection', '').lower()
+        conn = h_set.get('connection', '').lower()
         client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
         if conn != 'close' and client_conn == 'keep-alive':
-            self.header_set.append(('Connection', 'keep-alive'))
+            h_set['Connection'] = 'keep-alive'
             self.closeConnection = False
         else:
-            self.header_set.append(('Connection', 'close'))
+            h_set['Connection'] = 'close'
             self.closeConnection = True
 
         # Build our output headers
-        serialized_headers = ''.join([HEADER_LINE % (k,v)
-                                      for (k,v) in self.header_set])
-        header_data = HEADER_RESPONSE % (self.status, serialized_headers)
+        header_data = HEADER_RESPONSE % (self.status, str(h_set))
 
         # Send the headers
         self.err_log.debug('Sending Headers: %s' % repr(header_data))
@@ -194,8 +186,7 @@ class WSGIWorker(Worker):
             self.status = status
         # Make sure headers are bytes objects
         try:
-            self.header_set = [(h[0].strip(),
-                                h[1].strip()) for h in response_headers]
+            self.header_set = Headers(response_headers)
         except UnicodeDecodeError:
             self.error = ('500 Internal Server Error',
                           'HTTP Headers should be bytes')
@@ -206,7 +197,7 @@ class WSGIWorker(Worker):
 
     def run_app(self, conn):
         self.size = 0
-        self.header_set = []
+        self.header_set = Headers([])
         self.headers_sent = False
         self.error = (None, None)
         sections = None
@@ -243,14 +234,8 @@ class WSGIWorker(Worker):
             if self.chunked:
                 self.conn.sendall(b('0\r\n\r\n'))
 
-        except socket.error:
-            raise
-
-        except:
-            self.status = "500 Server Error"
-            self.closeConnection = True
-            self.err_log.debug('Error not trapped from WSGI app:\n' + traceback.format_exc())
-
+        # Don't capture exceptions here.  The Worker class handles
+        # them appropriately.
         finally:
             self.err_log.debug('Finally closing output and sock_file')
             if hasattr(output,'close'):
