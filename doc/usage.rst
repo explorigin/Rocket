@@ -27,7 +27,7 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
     server = CherryPyWSGIServer(('127.0.0.1', 80), demo_app)
     server.start()
     
-See the `API Reference`_ below for more details on all available options.
+See the `API Reference`_ below for more details on all available options.  Also the source distribution contains an examples directory with a ready-to-run example of each method type.
 
 Logging
 =======
@@ -67,17 +67,19 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
 
  will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.  Note that if you are using Rocket on a version of Python less than 2.6, you will have to install the `ssl module <http://pypi.python.org/pypi/ssl>`_ manually since the HTTPS feature depends on it.  
 
- **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass and interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
+ **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass an interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
 
 .. _method:
 
-* method_ - A string value indicating the type of Worker to use to answer the requests received by Rocket.  The default is **'wsgi'** and will invoke the WSGIWorker class for handling requests.  Currently this is the only option.  In the future more handlers could be added.
+* method_ - A string value indicating the type of Worker to use to answer the requests received by Rocket.  The default is **wsgi** and will invoke the WSGIWorker class for handling requests.  Go to the Methods_ section to see all available methods.
 
 .. _app_info:
 
-* app_info_ - A dictionary that holds information that the Worker class specified in *method* will use for configuration.  See the documentation for the Worker class you are using for specifics on what to put in this dictionary.  Current Worker classes are: WSGIWorker_
+* app_info_ - A dictionary that holds information that the Worker class specified in *method* will use for configuration.  See the documentation in the Methods_ section for the Worker class you are using for details on what to put in this dictionary.
 
-.. _WSGIWorker: development.html#wsgiworker
+.. _Methods: methods.html#methods
+
+.. _WSGIWorker: methods.html#wsgiworker
 
 .. _min_threads:
 

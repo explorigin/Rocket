@@ -136,16 +136,20 @@ class Worker(Thread):
                                     request_line = self.request_line)
                     self.req_log.info(LOG_LINE % log_info)
                 except:
-                    handled = self._handleError(*sys.exc_info())
+                    exc = sys.exc_info()
+                    handled = self._handleError(*exc)
                     if handled:
                         break
                     else:
-                        log_info = dict(client_ip = conn.client_addr,
-                                        time = datetime.now().strftime('%c'),
-                                        status = self.status.split(' ')[0],
-                                        size = self.size,
-                                        request_line = self.request_line)
                         if not self.pool.stop_server:
+                            tb = traceback.format_exception(*exc)
+                            self.err_log.warning('Unhandled Error when serving connection:\n' + tb)
+                        if self.request_line and not self.pool.stop_server:
+                            log_info = dict(client_ip = conn.client_addr,
+                                            time = datetime.now().strftime('%c'),
+                                            status = self.status.split(' ')[0],
+                                            size = self.size,
+                                            request_line = self.request_line + ' - not stopping')
                             self.req_log.info(LOG_LINE % log_info)
 
 
@@ -181,6 +185,7 @@ class Worker(Thread):
                     self.err_log.debug('Error on shutdown: '+str(info))
 
     def read_request_line(self, sock_file):
+        self.request_line = ''
         try:
             # Grab the request line
             d = sock_file.readline()
@@ -238,7 +243,7 @@ class Worker(Thread):
             try:
                 l = str(l, 'ISO-8859-1') if PY3K else l
             except UnicodeDecodeError:
-                self.err_log.warning('Client sent invalid header: ' + l.__repr__())
+                self.err_log.warning('Client sent invalid header: ' + repr(l))
 
             if l == '\r\n':
                 break

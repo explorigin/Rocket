@@ -11,6 +11,7 @@ Welcome to Rocket's documentation!
    :maxdepth: 2
 
    usage
+   methods
    design
    development
    acknowledgements
