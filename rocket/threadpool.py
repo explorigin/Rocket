@@ -95,7 +95,7 @@ class ThreadPool:
         # Remove dead threads from the pool
         # Assumes resize_lock is acquired from calling thread
 
-        dead_threads = [t for t in self.threads if not t.is_alive()]
+        dead_threads = [t for t in self.threads if not t.isAlive()]
         for t in dead_threads:
             log.debug("Removing dead thread: %s." % t.getName())
             self.threads.remove(t)
