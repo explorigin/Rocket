@@ -40,6 +40,6 @@ class RocketInitTest(unittest.TestCase):
             self.assertEquals(rocket.b('abc'), 'abc')
             self.assertEquals(type(rocket.b('abc')), type('abc'))
 
-            
+
 if __name__ == '__main__':
     unittest.main()

@@ -74,7 +74,7 @@ if __name__ == '__main__':
         print('Testing on Jython ' + sys.version.split(' ')[0])
     else:
         print('Testing on Python ' + sys.version.split(' ')[0])
-    
+
     print('Importing test modules...')
 
     mods = glob(os.path.join('tests','test_')+'*.py')

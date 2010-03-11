@@ -20,10 +20,10 @@ class RocketInitTest(unittest.TestCase):
     def setUp(self):
         self.starttuple = (socket.socket(), ('127.0.0.1', 90453))
         self.serverport = 81
-    
+
     def testMembers(self):
         c = connection.Connection(self.starttuple, self.serverport)
-        
+
         members = ["close", "client_addr", "server_port", "ssl", "socket", "start_time"]
         for m in members:
             self.assert_(hasattr(c, m),

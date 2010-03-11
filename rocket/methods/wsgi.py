@@ -40,14 +40,14 @@ class WSGIWorker(Worker):
         self.base_environ.update(BASE_ENV)
         # Grab our application
         self.app = self.app_info['wsgi_app']
-        
+
         Worker.__init__(self)
 
     def build_environ(self, sock_file, conn):
         """ Build the execution environment. """
         # Grab the request line
         request = self.read_request_line(sock_file)
-        
+
         # Grab the headers
         self.headers = dict([(str('HTTP_'+k.upper()), v) for k, v in self.read_headers(sock_file).items()])
 
@@ -93,7 +93,7 @@ class WSGIWorker(Worker):
         h_set = self.header_set
         # Does the app want us to send output chunked?
         self.chunked = h_set.get('transfer-encoding', '').lower() == 'chunked'
-        
+
         # Add a Date header if it's not there already
         if not 'date' in h_set:
             h_set['Date'] = formatdate(usegmt=True)

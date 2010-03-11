@@ -24,7 +24,7 @@ class LimitingFileWrapper(FileWrapper):
     def __init__(self, limit=None, *args, **kwargs):
         self.limit = limit
         FileWrapper.__init__(self, *args, **kwargs)
-    
+
     def read(self, amt):
         if amt > self.limit:
             amt = self.limit
@@ -40,7 +40,7 @@ class FileSystemWorker(Worker):
 
         self.root = os.path.abspath(self.app_info['document_root'])
         self.display_index = self.app_info['display_index']
-        
+
     def serve_file(self, filepath, headers):
         filestat = os.stat(filepath)
         self.size = filestat.st_size
@@ -52,7 +52,7 @@ class FileSystemWorker(Worker):
             self.status = "304 Not Modified"
             self.data = []
             return
-        
+
         ct = mimetypes.guess_type(filepath)[0]
         self.content_type = ct if ct else 'text/plain'
         try:
@@ -104,7 +104,7 @@ class FileSystemWorker(Worker):
         request = self.read_request_line(sock_file)
         if request['method'].upper() not in ('GET', ):
             self.status = "501 Not Implemented"
-        
+
         try:
             # Get our file path
             headers = dict([(str(k.lower()), v) for k, v in self.read_headers(sock_file).items()])
@@ -117,7 +117,7 @@ class FileSystemWorker(Worker):
                                     ('Server', HTTP_SERVER_SOFTWARE),
                                     ('Connection', headers.get('connection', 'close')),
                                    ])
-            
+
             if not filepath.lower().startswith(self.root.lower()):
                 # File must be within our root directory
                 self.status = "400 Bad Request"
@@ -141,17 +141,17 @@ class FileSystemWorker(Worker):
             if statcode >= 400:
                 h.add_header('Content-Type', self.content_type)
                 self.data = [statstr]
-                
+
             # Build our output headers
             header_data = HEADER_RESPONSE % (self.status, str(h))
 
             # Send the headers
             self.err_log.debug('Sending Headers: %s' % repr(header_data))
             self.conn.sendall(b(header_data))
-            
+
             for data in self.data:
                 self.conn.sendall(b(data))
-                
+
             if hasattr(self.data, 'close'):
                 self.data.close()
 
