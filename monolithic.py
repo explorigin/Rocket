@@ -32,6 +32,8 @@ class build_monolithic(Command):
 
     def finalize_options (self):
         packages = find_packages()
+        packages.remove('tests')
+
         for p in packages:
             self.files += sorted(glob(os.sep.join(p.split('.')) + os.sep + '*.py'))
 
@@ -56,7 +58,7 @@ class build_monolithic(Command):
                 first = False
             else:
                 filedata = ''.join(filedata[4:])
-                out.write("# Monolithic build...start of module: %s\r" % filename)
+                out.write("# Monolithic build...start of module: %s\n" % filename)
 
             i = 0
             templist = []
@@ -70,6 +72,6 @@ class build_monolithic(Command):
 
             out.write(filedata[i:len(filedata)])
 
-            out.write("\r# Monolithic build...end of module: %s\r" % filename)
+            out.write("\n# Monolithic build...end of module: %s\n" % filename)
 
         out.close()

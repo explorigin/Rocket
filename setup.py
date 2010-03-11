@@ -17,6 +17,8 @@ if sys.version_info < (2, 5):
 v = open(os.path.join(os.path.dirname(__file__), 'rocket', '__init__.py'))
 VERSION = re.compile(r".*VERSION = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
+packages = find_packages()
+packages.remove('tests')
 
 setup(name = "Rocket",
       version = VERSION,
@@ -24,7 +26,7 @@ setup(name = "Rocket",
       author = "Timothy Farrell",
       author_email = "tfarrell@owassobible.org",
       url = "http://www.launchpad.net/rocket",
-      packages = find_packages(),
+      packages = packages,
       license = "MIT License",
       long_description = """The Rocket web server is a pure Python server designed to handle the increased needs of modern web applications.  It is designed to be small and simple enough to be bundled with other Python projects while remaining performant enough to handle production work loads.  Currently Rocket is limited to serving WSGI applications and middleware.
       
