@@ -199,6 +199,7 @@ class WSGIWorker(Worker):
         self.header_set = Headers([])
         self.headers_sent = False
         self.error = (None, None)
+        self.chunked = False
         sections = None
         output = None
 
