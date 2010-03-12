@@ -153,10 +153,9 @@ class WSGIWorker(Worker):
             self.send_headers(data, sections)
 
         if self.request_method != 'HEAD':
-            if self.chunked:
-                self.conn.sendall(b('%x\r\n' % len(data)))
-
             try:
+                if self.chunked:
+                    self.conn.sendall(b('%x\r\n' % len(data)))
                 # Send another NEWLINE for good measure
                 self.conn.sendall(data)
                 if self.chunked:
@@ -226,13 +225,12 @@ class WSGIWorker(Worker):
                 if data:
                     self.write(data, sections)
 
-            # Send headers if the body was empty
-            if not self.headers_sent:
-                self.write(b(''))
-
-            # If chunked, send our final chunk length
             if self.chunked:
+                # If chunked, send our final chunk length
                 self.conn.sendall(b('0\r\n\r\n'))
+            elif not self.headers_sent:
+                # Send headers if the body was empty
+                self.send_headers('', sections)
 
         # Don't capture exceptions here.  The Worker class handles
         # them appropriately.
