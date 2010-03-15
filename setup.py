@@ -33,7 +33,7 @@ setup(name = "Rocket",
       Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool).
       """,
       classifiers = [
-        "Development Status :: 3 - Alpha",
+        "DDevelopment Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
