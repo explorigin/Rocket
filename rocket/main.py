@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2010 Timothy Farrell
 
 # Import System Modules
 import os
@@ -31,7 +31,7 @@ class Rocket:
 
     def __init__(self,
                  interfaces = ('127.0.0.1', 8000),
-                 method='test',
+                 method='wsgi',
                  app_info = None,
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],

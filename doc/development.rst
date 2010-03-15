@@ -40,3 +40,16 @@ To do so, create a module in the methods subdirectory.  The module should specif
 
 .. _Worker: design.html#worker
 .. _app_info: usage.html#app-info
+
+Submitting Bugs
+===============
+
+If you encounter a bug, please fill out a bug report on Launchpad (linked above).  Please include:
+
+* Version of Python used.
+* Version of Rocket used.
+* Traceback of the issue.
+* Invocation code (if relevant)
+* HTTP client used to discover the bug
+
+*Note about standards compliance:*  The HTTP 1.1 specification is quite extensive and allows for a few behaviors that are not regularly used.  Because Rocket seeks to be fast and small, some of these features have been left out on purpose.  However, if you find that there is an implementation detail missing that you require, please fill out a bug report or submit a patch and I'll include it.
