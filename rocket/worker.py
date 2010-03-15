@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2010 Timothy Farrell
 
 # Import System Modules
 import re
@@ -308,31 +308,7 @@ class ChunkedReader:
     def readlines(self):
         yield self.readline()
 
-class TestWorker(Worker):
-    HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s\r\n'''
-
-    def run_app(self, conn):
-        self.closeConnection = True
-        sock_file = conn.makefile('rb', BUF_SIZE)
-        n = sock_file.readline().strip()
-        while n:
-            self.err_log.debug(n)
-            n = sock_file.readline().strip()
-
-        response = self.HEADER_RESPONSE % ('200 OK', 'Content-type: text/html')
-        response += '\r\n<h1>It Works!</h1>'
-
-        try:
-            self.err_log.debug(response)
-            conn.sendall(b(response))
-        finally:
-            sock_file.close()
-
 def get_method(method):
     from .methods.wsgi import WSGIWorker
-    from .methods.fs import FileSystemWorker
-    methods = dict(test=TestWorker,
-                   wsgi=WSGIWorker,
-                   fs=FileSystemWorker)
-
-    return methods.get(method.lower(), TestWorker)
+    methods = dict(wsgi=WSGIWorker)
+    return methods[method.lower()]

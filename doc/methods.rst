@@ -2,9 +2,8 @@
 Methods
 =======
 
-Rocket uses *Methods* as a way to serve different types of content.  Currently there are two methods:
+Rocket uses *Methods* as a way to serve different types of content.  Currently there is one method:
 
-* `fs`_ - Serves files from a specified directory.
 * `wsgi`_ - Serves a `WSGI <http://www.python.org/dev/peps/pep-0333/>`_-compliant application.
 
 .. _wsgiworker:
@@ -32,14 +31,3 @@ Rocket provides the following environment variables to applications that it runs
 
 .. _Worker: design.html#worker
 .. _app_info: usage.html#app-info
-
-
-FS
-==
-
-The *fs* method is implemented by the FileSystemWorker class.
-
-The *app_info* property for the FileSystemWorker should contain the following:
-
-* document_root: a string-value path to the directory that will serve as the root for serving files.
-* display_index: a boolean-value indicating if an HTML index of a directory should be served if a directory is requested.
