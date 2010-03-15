@@ -210,6 +210,11 @@ class WSGIWorker(Worker):
         try:
             # Read the headers and build our WSGI environment
             environ = self.build_environ(sock_file, conn)
+            
+            # Handle 100 Continue
+            if environ.get('HTTP_EXPECT', '').lower() == '100-continue':
+                res = environ['SERVER_PROTOCOL'] + ' 100 Continue\r\n\r\n'
+                conn.sendall(b(res))
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
