@@ -66,7 +66,7 @@ class ThreadPool:
         self.stop_server = False
         log.debug("Starting threads.")
         for thread in self.threads:
-            thread.daemon = True
+            thread.setDaemon(True)
             thread._pool = self
             thread.start()
 

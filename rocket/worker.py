@@ -62,7 +62,7 @@ class Worker(Thread):
     def __init__(self, *args, **kwargs):
         Thread.__init__(self, *args, **kwargs)
         self.req_log = logging.getLogger('Rocket.Requests')
-        self.err_log = logging.getLogger('Rocket.Errors.'+self.name)
+        self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
         self.req_log.addHandler(NullHandler())
         self.err_log.addHandler(NullHandler())
 
