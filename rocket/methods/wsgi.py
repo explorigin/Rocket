@@ -120,13 +120,12 @@ class WSGIWorker(Worker):
         # If the client or application asks to keep the connection alive, do so.
         conn = h_set.get('connection', '').lower()
         client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
-        if self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
-            if conn != 'close' and client_conn == 'keep-alive':
-                h_set['Connection'] = 'keep-alive'
-                self.closeConnection = False
-            else:
-                h_set['Connection'] = 'close'
-                self.closeConnection = True
+        if conn != 'close' and client_conn == 'keep-alive' and self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
+            h_set['Connection'] = 'keep-alive'
+            self.closeConnection = False
+        else:
+            h_set['Connection'] = 'close'
+            self.closeConnection = True
 
         # Build our output headers
         header_data = HEADER_RESPONSE % (self.status, str(h_set))
