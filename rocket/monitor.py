@@ -6,14 +6,23 @@
 # Import System Modules
 import time
 import logging
-from select import select
+import select
 try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
 from threading import Thread
 # Import Package Modules
-from . import IS_JYTHON
+from . import IS_JYTHON, POLL_TIMEOUT
+
+# Setup Polling if supported (but it doesn't work well on Jython)
+if hasattr(select, 'poll') and not IS_JYTHON:
+    try:
+        poll = select.epoll()
+    except:
+        poll = select.poll()
+else:
+    poll = None
 
 class Monitor(Thread):
     # Monitor worker base class.
@@ -30,6 +39,7 @@ class Monitor(Thread):
             pass
 
         self.log.debug('Entering monitor loop.')
+        poll_dict = dict()
 
         # Enter thread main loop
         while True:
@@ -55,10 +65,17 @@ class Monitor(Thread):
 
                 self.log.debug('Adding connection to monitor list.')
                 self.connections.add(c)
+                if poll:
+                    poll_dict.update({c.fileno():c})
+                    poll.register(c)
 
             # Wait on those connections
             self.log.debug('Blocking on connections')
-            readable = select(list(self.connections), [], [], 1.0)[0]
+            if poll:
+                readable = [poll_dict(c) for c in poll.poll(POLL_TIMEOUT)]
+            else:
+                readable = select.select(list(self.connections),
+                                         [], [], POLL_TIMEOUT)[0]
 
             # If we have any readable connections, put them back
             for r in readable:
@@ -74,6 +91,10 @@ class Monitor(Thread):
                 self.out_queue.put(r)
                 self.connections.remove(r)
 
+                if poll:
+                    poll.unregister(c)
+                    del poll_dict[c.fileno()]
+
             # If we have any stale connections, kill them off.
             if self.timeout:
                 now = time.time()
@@ -86,6 +107,9 @@ class Monitor(Thread):
                     data = (c.client_addr, c.server_port, '*' if c.ssl else '')
                     self.log.debug('Flushing stale connection: %s:%i%s' % data)
                     self.connections.remove(c)
+                    if poll:
+                        poll.unregister(c)
+                        del poll_dict[c.fileno()]
                     try:
                         c.close()
                     finally:

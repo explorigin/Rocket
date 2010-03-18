@@ -78,6 +78,10 @@ class Worker(Thread):
             self.closeConnection = True
             self.err_log.debug('Client closed socket')
             return False
+        if typ == BadRequest:
+            self.closeConnection = True
+            self.err_log.debug('Client sent a bad request')
+            return True
         if typ == socket.error:
             self.closeConnection = True
             if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
@@ -205,9 +209,10 @@ class Worker(Thread):
         try:
             self.request_line = d.strip()
             method, uri, proto = self.request_line.split(' ')
-        except ValueError:
-            # FIXME - Raise 400 Bad Request
-            raise
+            assert proto.startswith('HTTP')
+        except ValueError, AssertionError:
+            self.send_response('400 Bad Request')
+            raise BadRequest
 
         req = dict(method=method, protocol = proto)
         scheme = ''
@@ -263,6 +268,10 @@ class Worker(Thread):
 
 class SocketTimeout(Exception):
     "Exception for when a socket times out between requests."
+    pass
+
+class BadRequest(Exception):
+    "Exception for when a client sends an incomprehensible request."
     pass
 
 class SocketClosed(Exception):

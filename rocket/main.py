@@ -11,19 +11,28 @@ import signal
 import socket
 import logging
 import traceback
-from select import select
+import select
 try:
     import ssl
 except ImportError:
     ssl = None
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler
+from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
 from .monitor import Monitor
 from .threadpool import ThreadPool
 
 # Setup Logging
 log = logging.getLogger('Rocket')
 log.addHandler(NullHandler())
+
+# Setup Polling if supported (but it doesn't work well on Jython)
+if hasattr(select, 'poll') and not IS_JYTHON:
+    try:
+        poll = select.epoll()
+    except:
+        poll = select.poll()
+else:
+    poll = None
 
 class Rocket:
     """The Rocket class is responsible for handling threads and accepting and
@@ -157,11 +166,25 @@ class Rocket:
         msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if len(l) > 2 else '') for l in self.listener_dict.values()])
         log.info(msg)
 
+        # Add our polling objects
+        if poll:
+            log.info("Detected Polling.")
+            poll_dict = dict()
+            for l in self.listeners:
+                poll.register(l)
+                poll_dict.update({l.fileno():l})
+
         while not self._threadpool.stop_server:
             try:
-                for l in select(self.listeners, [], [], 1.0)[0]:
-                    self._threadpool.queue.put((l.accept(),
-                                                self.listener_dict[l][1]))
+                if poll:
+                    for sd, evt in poll.poll(POLL_TIMEOUT):
+                        sock = poll_dict[sd]
+                        self._threadpool.queue.put((sock.accept(),
+                                                    self.listener_dict[sock][1]))
+                else:
+                    for l in select.select(self.listeners, [], [], POLL_TIMEOUT)[0]:
+                        self._threadpool.queue.put((l.accept(),
+                                                    self.listener_dict[l][1]))
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 return self.stop()
