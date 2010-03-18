@@ -117,15 +117,18 @@ class WSGIWorker(Worker):
                         self.err_log.debug('Adding header...Transfer-Encoding: '
                                            'Chunked')
 
-        # If the client or application asks to keep the connection alive, do so.
-        conn = h_set.get('connection', '').lower()
-        client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
-        if conn != 'close' and client_conn == 'keep-alive' and self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
-            h_set['Connection'] = 'keep-alive'
-            self.closeConnection = False
-        else:
-            h_set['Connection'] = 'close'
-            self.closeConnection = True
+        if 'connection' not in h_set:
+            # If the application did not provide a connection header, fill it in
+            client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
+            if self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
+                # HTTP = 1.1 defaults to keep-alive connections
+                h_set['Connection'] = client_conn if client_conn else 'keep-alive'
+            else:
+                # HTTP < 1.1 supports keep-alive but it's quirky so we don't support it
+                h_set['Connection'] = 'close'
+        
+        # Close our connection if we need to.
+        self.closeConnection = h_set.get('connection', '').lower() == 'close'
 
         # Build our output headers
         header_data = HEADER_RESPONSE % (self.status, str(h_set))
