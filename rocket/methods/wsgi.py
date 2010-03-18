@@ -56,8 +56,6 @@ class WSGIWorker(Worker):
 
         # Add CGI Variables
         environ['REQUEST_METHOD'] = request['method']
-        # I haven't decided if we really need to be like Apache.
-        #environ['REQUEST_URI'] = '?'.join((request['path'], request['query_string']))
         environ['PATH_INFO'] = request['path']
         environ['SERVER_PROTOCOL'] = request['protocol']
         environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
@@ -122,12 +120,13 @@ class WSGIWorker(Worker):
         # If the client or application asks to keep the connection alive, do so.
         conn = h_set.get('connection', '').lower()
         client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
-        if conn != 'close' and client_conn == 'keep-alive':
-            h_set['Connection'] = 'keep-alive'
-            self.closeConnection = False
-        else:
-            h_set['Connection'] = 'close'
-            self.closeConnection = True
+        if self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
+            if conn != 'close' and client_conn == 'keep-alive':
+                h_set['Connection'] = 'keep-alive'
+                self.closeConnection = False
+            else:
+                h_set['Connection'] = 'close'
+                self.closeConnection = True
 
         # Build our output headers
         header_data = HEADER_RESPONSE % (self.status, str(h_set))
@@ -139,7 +138,7 @@ class WSGIWorker(Worker):
 
     def write_warning(self, data, sections=None):
         self.err_log.warning('WSGI app called write method directly.  This is '
-                             'obsolete behavior.  Please update your app.')
+                             'deprecated behavior.  Please update your app.')
         return self.write(data, sections)
 
     def write(self, data, sections=None):
@@ -209,8 +208,8 @@ class WSGIWorker(Worker):
 
         try:
             # Read the headers and build our WSGI environment
-            environ = self.build_environ(sock_file, conn)
-            
+            self.environ = environ = self.build_environ(sock_file, conn)
+
             # Handle 100 Continue
             if environ.get('HTTP_EXPECT', '').lower() == '100-continue':
                 res = environ['SERVER_PROTOCOL'] + ' 100 Continue\r\n\r\n'
