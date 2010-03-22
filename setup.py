@@ -18,7 +18,8 @@ v = open(os.path.join(os.path.dirname(__file__), 'rocket', '__init__.py'))
 VERSION = re.compile(r".*VERSION = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 packages = find_packages()
-packages.remove('tests')
+if 'tests' in packages:
+    packages.remove('tests')
 
 setup(name = "Rocket",
       version = VERSION,
@@ -33,7 +34,7 @@ setup(name = "Rocket",
       Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool).
       """,
       classifiers = [
-        "DDevelopment Status :: 5 - Production/Stable",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
