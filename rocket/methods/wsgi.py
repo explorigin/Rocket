@@ -108,7 +108,7 @@ class WSGIWorker(Worker):
                 if not self.chunked:
                     if sections == 1:
                         # Add a Content-Length header if it's not there already
-                        h_set['Content-Length'] = len(data)
+                        h_set['Content-Length'] = str(len(data))
                         self.size = len(data)
                     else:
                         # If they sent us more than one section, we blow chunks
