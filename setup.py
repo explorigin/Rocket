@@ -29,10 +29,12 @@ setup(name = "Rocket",
       url = "http://www.launchpad.net/rocket",
       packages = packages,
       license = "MIT License",
-      long_description = """The Rocket web server is a pure Python server designed to handle the increased needs of modern web applications.  It is designed to be small and simple enough to be bundled with other Python projects while remaining performant enough to handle production work loads.  Currently Rocket is limited to serving WSGI applications and middleware.
-      
-      Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool).
-      """,
+      long_description = """The Rocket web server is a server designed to handle the increased needs of modern web applications implemented in pure Python. It can serve WSGI applications and middleware currently with the ability to be extended to handle different types of networked request-response jobs. Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool). Rocket is similar in purpose to Cherrypy's Wsgiserver but with added flexibility, speed and concurrency.
+
+Rocket Documentation is viewable at http://packages.python.org/rocket .
+
+If you're searching for the rocket GAE framework, email mjpizz+rocket@gmail.com
+""",
       classifiers = [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
