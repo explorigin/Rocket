@@ -210,7 +210,10 @@ class Worker(Thread):
             self.request_line = d.strip()
             method, uri, proto = self.request_line.split(' ')
             assert proto.startswith('HTTP')
-        except ValueError, AssertionError:
+        except ValueError:
+            self.send_response('400 Bad Request')
+            raise BadRequest
+        except AssertionError:
             self.send_response('400 Bad Request')
             raise BadRequest
 
