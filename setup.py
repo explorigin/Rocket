@@ -17,9 +17,7 @@ if sys.version_info < (2, 5):
 v = open(os.path.join(os.path.dirname(__file__), 'rocket', '__init__.py'))
 VERSION = re.compile(r".*VERSION = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
-packages = find_packages()
-if 'tests' in packages:
-    packages.remove('tests')
+packages = find_packages(exclude=['tests'])
 
 setup(name = "Rocket",
       version = VERSION,
