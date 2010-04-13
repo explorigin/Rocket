@@ -16,7 +16,7 @@ SERVER_NAME = socket.gethostname()
 SERVER_SOFTWARE = 'Rocket %s' % VERSION
 HTTP_SERVER_SOFTWARE = '%s Python/%s' % (SERVER_SOFTWARE, sys.version.split(' ')[0])
 BUF_SIZE = 16384
-POLL_TIMEOUT = 1.0
+POLL_TIMEOUT = 1
 IS_JYTHON = platform.system() == 'Java' # Handle special cases for Jython
 IGNORE_ERRORS_ON_CLOSE = set([errno.ECONNABORTED, errno.ECONNRESET])
 DEFAULT_LISTEN_QUEUE_SIZE = 5
