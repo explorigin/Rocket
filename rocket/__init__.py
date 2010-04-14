@@ -11,7 +11,7 @@ import logging
 import platform
 
 # Define Constants
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 SERVER_NAME = socket.gethostname()
 SERVER_SOFTWARE = 'Rocket %s' % VERSION
 HTTP_SERVER_SOFTWARE = '%s Python/%s' % (SERVER_SOFTWARE, sys.version.split(' ')[0])
