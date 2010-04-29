@@ -124,12 +124,18 @@ class Worker(Thread):
                 # See: http://bugs.jython.org/issue1309
                 conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-            self.err_log.debug('Received a connection.')
-
             if hasattr(conn,'settimeout') and self.timeout:
                 conn.settimeout(self.timeout)
 
-            self.closeConnection = False
+            if conn.ssl != conn.secure:
+                self.err_log.info('Received HTTP connection on HTTPS port.')
+                self.send_response('400 Bad Request')
+                self.closeConnection = True
+                conn.close()
+                continue
+            else:
+                self.err_log.debug('Received a connection.')
+                self.closeConnection = False
 
             # Enter connection serve loop
             while True:
@@ -166,10 +172,10 @@ class Worker(Thread):
         self.closeConnection = True
         raise NotImplementedError('Overload this method!')
 
-    def send_response(self, status, disconnect=False, content_type='text/plain'):
+    def send_response(self, status):
         msg = RESPONSE % (status,
                           len(status),
-                          content_type,
+                          'text/plain',
                           status.split(' ', 1)[1])
         try:
             self.conn.sendall(b(msg))

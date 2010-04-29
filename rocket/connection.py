@@ -14,12 +14,13 @@ except ImportError:
 from . import PY3K
 
 class Connection:
-    def __init__(self, sock_tuple, port):
+    def __init__(self, sock_tuple, port, secure=False):
         self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
         self.socket = sock_tuple[0]
         self.start_time = time.time()
         self.ssl = ssl and isinstance(self.socket, ssl.SSLSocket)
+        self.secure = secure
 
         for x in dir(self.socket):
             if not hasattr(self, x):
