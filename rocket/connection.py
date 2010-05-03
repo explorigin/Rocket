@@ -8,8 +8,9 @@ import time
 import socket
 try:
     import ssl
+    has_ssl = True
 except ImportError:
-    ssl = None
+    has_ssl = False
 # Import Package Modules
 from . import PY3K
 
@@ -19,7 +20,7 @@ class Connection:
         self.server_port = port
         self.socket = sock_tuple[0]
         self.start_time = time.time()
-        self.ssl = ssl and isinstance(self.socket, ssl.SSLSocket)
+        self.ssl = has_ssl and isinstance(self.socket, ssl.SSLSocket)
         self.secure = secure
 
         for x in dir(self.socket):

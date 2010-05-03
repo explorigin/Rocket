@@ -14,8 +14,12 @@ import traceback
 import select
 try:
     import ssl
+    from ssl import SSLError
+    has_ssl = True
 except ImportError:
-    ssl = None
+    has_ssl = False
+    class SSLError(socket.error):
+        pass
 # Import Package Modules
 from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
 from .monitor import Monitor
@@ -102,7 +106,7 @@ class Rocket:
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
             if secure:
-                if not ssl:
+                if not has_ssl:
                     log.error("ssl module required to serve HTTPS.")
                     del listener
                     continue
