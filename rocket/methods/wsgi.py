@@ -126,7 +126,7 @@ class WSGIWorker(Worker):
             else:
                 # HTTP < 1.1 supports keep-alive but it's quirky so we don't support it
                 h_set['Connection'] = 'close'
-        
+
         # Close our connection if we need to.
         self.closeConnection = h_set.get('connection', '').lower() == 'close'
 

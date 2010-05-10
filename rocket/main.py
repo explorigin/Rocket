@@ -14,8 +14,12 @@ import traceback
 import select
 try:
     import ssl
+    from ssl import SSLError
+    has_ssl = True
 except ImportError:
-    ssl = None
+    has_ssl = False
+    class SSLError(socket.error):
+        pass
 # Import Package Modules
 from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
 from .monitor import Monitor
@@ -97,12 +101,12 @@ class Rocket:
         for i in self.interfaces:
             addr = i[0]
             port = i[1]
-            secure = len(i) > 3 and i[2] and i[3]
+            secure = len(i) == 4 and i[2] != '' and i[3] != ''
 
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
             if secure:
-                if not ssl:
+                if not has_ssl:
                     log.error("ssl module required to serve HTTPS.")
                     del listener
                     continue
@@ -110,17 +114,14 @@ class Rocket:
                     data = (i[2], i[0], i[1])
                     log.error("Cannot find key file "
                               "'%s'.  Cannot bind to %s:%s" % data)
+                    del listener
+                    continue
                 elif not os.path.exists(i[3]):
                     data = (i[3], i[0], i[1])
                     log.error("Cannot find certificate file "
                               "'%s'.  Cannot bind to %s:%s" % data)
-                else:
-                    listener = ssl.wrap_socket(listener,
-                                               keyfile=i[2],
-                                               certfile=i[3],
-                                               server_side=True,
-                                               ssl_version=ssl.PROTOCOL_SSLv23
-                                               )
+                    del listener
+                    continue
 
             if not listener:
                 log.error("Failed to get socket.")
@@ -156,14 +157,14 @@ class Rocket:
             listener.listen(self.queue_size)
 
             self.listeners.append(listener)
-            self.listener_dict.update({listener: i})
+            self.listener_dict.update({listener: (i, secure)})
 
         if not self.listeners:
             log.critical("No interfaces to listen on...closing.")
             sys.exit(1)
 
         msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if len(l) > 2 else '') for l in self.listener_dict.values()])
+        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if s else '') for l, s in self.listener_dict.values()])
         log.info(msg)
 
         # Add our polling objects
@@ -177,14 +178,27 @@ class Rocket:
         while not self._threadpool.stop_server:
             try:
                 if poll:
-                    for sd, evt in poll.poll(POLL_TIMEOUT):
-                        sock = poll_dict[sd]
-                        self._threadpool.queue.put((sock.accept(),
-                                                    self.listener_dict[sock][1]))
+                    listeners = [poll_dict[x[0]] for x in poll.poll(POLL_TIMEOUT)]
                 else:
-                    for l in select.select(self.listeners, [], [], POLL_TIMEOUT)[0]:
-                        self._threadpool.queue.put((l.accept(),
-                                                    self.listener_dict[l][1]))
+                    listeners = select.select(self.listeners, [], [], POLL_TIMEOUT)[0]
+
+                for l in listeners:
+                    sock = l.accept()
+                    info, secure = self.listener_dict[l]
+                    if secure:
+                        try:
+                            sock = (ssl.wrap_socket(sock[0],
+                                                    keyfile=info[2],
+                                                    certfile=info[3],
+                                                    server_side=True,
+                                                    ssl_version=ssl.PROTOCOL_SSLv23), sock[1])
+                        except SSLError:
+                            # Generally this happens when an HTTP request is received on a secure socket.
+                            # We don't do anything because it will be detected by Worker and dealt with
+                            # appropriately.
+                            pass
+                    self._threadpool.queue.put((sock, info[1], secure))
+
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 return self.stop()
