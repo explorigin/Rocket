@@ -232,7 +232,8 @@ class Worker(Thread):
             scheme, rest = uri.split('://')
             host, path = rest.split('/', 1)
         else:
-            path = ''
+            self.send_response('400 Bad Request')
+            raise BadRequest
 
         query_string = ''
         if '?' in path:
