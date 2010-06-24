@@ -12,9 +12,9 @@ There are two methods of invoking Rocket.  The first is the native method which 
 ::
 
     from rocket import Rocket
-    from wsgiref import demo_app
+    from wsgiref.simple_server import demo_app
 
-    server = Rocket(('127.0.0.1', 80), 'wsgi', {wsgi_app:demo_app})
+    server = Rocket(('127.0.0.1', 80), 'wsgi', {"wsgi_app":demo_app})
     server.start()
 
 The second is a simple CherryPy adapter to make Rocket work as a drop-in replacement for the CherryPy WSGI server.
@@ -22,7 +22,7 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
 ::
 
     from rocket import CherryPyWSGIServer
-    from wsgiref import demo_app
+    from wsgiref.simple_server import demo_app
 
     server = CherryPyWSGIServer(('127.0.0.1', 80), demo_app)
     server.start()

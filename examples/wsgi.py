@@ -13,7 +13,7 @@ if __name__ == '__main__':
     log.addHandler(h)
     Rocket(interfaces=('127.0.0.1', 80),
            method='wsgi',
-           app_info=dict(wsgi_app=demo_app),
+           app_info={"wsgi_app": demo_app},
            min_threads=64,
            max_threads=128,
            timeout=60).start()

@@ -41,6 +41,9 @@ class WSGIWorker(Worker):
         # Grab our application
         self.app = self.app_info['wsgi_app']
 
+        if not callable(self.app):
+            raise TypeError("The wsgi_app specified (%s) is not a valid WSGI application." % repr(self.app))
+
         Worker.__init__(self)
 
     def build_environ(self, sock_file, conn):
