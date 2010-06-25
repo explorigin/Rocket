@@ -13,5 +13,5 @@ if __name__ == '__main__':
     log.addHandler(h)
     Rocket(interfaces=('127.0.0.1', 80),
            method='fs', app_info=dict(document_root=os.getcwd(),
-                                      display_index=False),
+                                      display_index=True),
            min_threads=64, max_threads=0, timeout=60).start()

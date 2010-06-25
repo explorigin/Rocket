@@ -9,6 +9,7 @@ import sys
 import time
 import socket
 import mimetypes
+from glob import glob
 from email.utils import formatdate
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
@@ -19,6 +20,15 @@ from ..worker import Worker
 # Define Constants
 CHUNK_SIZE = 2**16 # 64 Kilobyte chunks
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s'''
+INDEX_HEADER = '''\
+<html>
+<head><title>Directory Index: %(path)s</title></head>
+<body><h1>Directory Index: %(path)s</h1>
+<table>
+<tr><th>Filename</th><th>Size</th></tr>
+'''
+INDEX_ROW = '''<tr><td><a href="%(link)s">%(name)s</a></td><td>%(size)s</td></tr>'''
+INDEX_FOOTER = '''</table></body></html>\r\n'''
 
 class LimitingFileWrapper(FileWrapper):
     def __init__(self, limit=None, *args, **kwargs):
@@ -82,14 +92,28 @@ class FileSystemWorker(Worker):
         except IOError:
             self.status = "403 Forbidden"
 
-    def serve_dir(self, pth):
+    def serve_dir(self, pth, rpth):
+        def rel_path(path):
+            return '/' + path[len(self.root) + 1:] if path.startswith(self.root) else path
+
         if not self.display_index:
             self.status = '404 File Not Found'
             return b('')
         else:
-            self.status = '501 Not Implemented'
-            return b('')
-
+            self.content_type = 'text/html'
+            glob_spec = os.path.normpath('{0}{1}*'.format(pth, os.path.sep))
+    
+            globs = [x for x in glob(glob_spec)]
+            dirs = [rel_path(x)+'/' for x in globs if os.path.isdir(x)]
+            files = [rel_path(x) for x in globs if os.path.isfile(x)]
+            
+            self.data = [INDEX_HEADER % dict(path=rpth)]
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), size=0, link=rel_path(x)) for x in dirs]
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x), size=0, link=rel_path(x)) for x in files]
+            self.data += [INDEX_FOOTER]
+            self.headers['Content-Length'] = sum([len(x) for x in self.data])
+            self.status = '200 OK'
+            
     def run_app(self, conn):
         self.status = "200 OK"
         self.size = 0
@@ -126,7 +150,7 @@ class FileSystemWorker(Worker):
                 self.status = "404 File Not Found"
                 self.closeConnection = True
             elif os.path.isdir(filepath):
-                self.serve_dir(filepath)
+                self.serve_dir(filepath, rpath)
             elif os.path.isfile(filepath):
                 self.serve_file(filepath, headers)
             else:
