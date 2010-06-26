@@ -9,7 +9,6 @@ import sys
 import time
 import socket
 import mimetypes
-from glob import glob
 from email.utils import formatdate
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
@@ -22,12 +21,14 @@ CHUNK_SIZE = 2**16 # 64 Kilobyte chunks
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s'''
 INDEX_HEADER = '''\
 <html>
-<head><title>Directory Index: %(path)s</title></head>
+<head><title>Directory Index: %(path)s</title>
+<style> .parent { margin-bottom: 1em; }</style>
+</head>
 <body><h1>Directory Index: %(path)s</h1>
 <table>
-<tr><th>Filename</th><th>Size</th></tr>
+<tr><th>Directories</th></tr>
 '''
-INDEX_ROW = '''<tr><td><a href="%(link)s">%(name)s</a></td><td>%(size)s</td></tr>'''
+INDEX_ROW = '''<tr><td><div class="%(cls)s"><a href="%(link)s">%(name)s</a></div></td></tr>'''
 INDEX_FOOTER = '''</table></body></html>\r\n'''
 
 class LimitingFileWrapper(FileWrapper):
@@ -101,15 +102,19 @@ class FileSystemWorker(Worker):
             return b('')
         else:
             self.content_type = 'text/html'
-            glob_spec = os.path.normpath('{0}{1}*'.format(pth, os.path.sep))
     
-            globs = [x for x in glob(glob_spec)]
-            dirs = [rel_path(x)+'/' for x in globs if os.path.isdir(x)]
-            files = [rel_path(x) for x in globs if os.path.isfile(x)]
+            dir_contents = [os.path.join(rpth, x) for x in os.listdir(os.path.normpath(pth))]
+            dir_contents.sort()
+            
+            dirs = [rel_path(x)+'/' for x in dir_contents if os.path.isdir(x)]
+            files = [rel_path(x) for x in dir_contents if os.path.isfile(x)]
             
             self.data = [INDEX_HEADER % dict(path=rpth)]
-            self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), size=0, link=rel_path(x)) for x in dirs]
-            self.data += [INDEX_ROW % dict(name=os.path.basename(x), size=0, link=rel_path(x)) for x in files]
+            if rpth:
+                self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'+'/'.join(rpth[:-1].split('/')[:-1]))]
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), link=os.path.join(rpth, os.path.basename(x[:-1])), cls='dir') for x in dirs]
+            self.data += ['<tr><th>Files</th></tr>']
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x), link=os.path.join(rpth, os.path.basename(x)), cls='file') for x in files]
             self.data += [INDEX_FOOTER]
             self.headers['Content-Length'] = sum([len(x) for x in self.data])
             self.status = '200 OK'
