@@ -109,7 +109,7 @@ class FileSystemWorker(Worker):
             dirs = [rel_path(x)+'/' for x in dir_contents if os.path.isdir(x)]
             files = [rel_path(x) for x in dir_contents if os.path.isfile(x)]
             
-            self.data = [INDEX_HEADER % dict(path=rpth)]
+            self.data = [INDEX_HEADER % dict(path='/'+rpth)]
             if rpth:
                 self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'+'/'.join(rpth[:-1].split('/')[:-1]))]
             self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), link=os.path.join(rpth, os.path.basename(x[:-1])), cls='dir') for x in dirs]
