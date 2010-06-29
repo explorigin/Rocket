@@ -52,6 +52,4 @@ If you're searching for the rocket GAE framework, email mjpizz+rocket@gmail.com
             "build_monolithic = monolithic:build_monolithic",
             "build_release = release:build_release",
         ],
-    }
-        
-      )
+    })
