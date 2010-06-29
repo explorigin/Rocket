@@ -28,7 +28,7 @@ INDEX_HEADER = '''\
 <table>
 <tr><th>Directories</th></tr>
 '''
-INDEX_ROW = '''<tr><td><div class="%(cls)s"><a href="%(link)s">%(name)s</a></div></td></tr>'''
+INDEX_ROW = '''<tr><td><div class="%(cls)s"><a href="/%(link)s">%(name)s</a></div></td></tr>'''
 INDEX_FOOTER = '''</table></body></html>\r\n'''
 
 class LimitingFileWrapper(FileWrapper):
@@ -111,12 +111,12 @@ class FileSystemWorker(Worker):
             
             self.data = [INDEX_HEADER % dict(path='/'+rpth)]
             if rpth:
-                self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'+'/'.join(rpth[:-1].split('/')[:-1]))]
+                self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'.join(rpth[:-1].split('/')[:-1]))]
             self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), link=os.path.join(rpth, os.path.basename(x[:-1])), cls='dir') for x in dirs]
             self.data += ['<tr><th>Files</th></tr>']
             self.data += [INDEX_ROW % dict(name=os.path.basename(x), link=os.path.join(rpth, os.path.basename(x)), cls='file') for x in files]
             self.data += [INDEX_FOOTER]
-            self.headers['Content-Length'] = sum([len(x) for x in self.data])
+            self.headers['Content-Length'] = self.size = sum([len(x) for x in self.data])
             self.status = '200 OK'
             
     def run_app(self, conn):
