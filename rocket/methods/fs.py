@@ -95,7 +95,7 @@ class FileSystemWorker(Worker):
 
     def serve_dir(self, pth, rpth):
         def rel_path(path):
-            return '/' + path[len(self.root) + 1:] if path.startswith(self.root) else path
+            return os.path.normpath(path[len(self.root):] if path.startswith(self.root) else path)
 
         if not self.display_index:
             self.status = '404 File Not Found'
@@ -103,7 +103,7 @@ class FileSystemWorker(Worker):
         else:
             self.content_type = 'text/html'
     
-            dir_contents = [os.path.join(rpth, x) for x in os.listdir(os.path.normpath(pth))]
+            dir_contents = [os.path.join(pth, x) for x in os.listdir(os.path.normpath(pth))]
             dir_contents.sort()
             
             dirs = [rel_path(x)+'/' for x in dir_contents if os.path.isdir(x)]
