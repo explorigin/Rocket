@@ -7,7 +7,6 @@
 import os
 import sys
 import time
-import signal
 import socket
 import logging
 import traceback
@@ -83,6 +82,7 @@ class Rocket:
 
         # Set up our shutdown signals
         try:
+            import signal
             signal.signal(signal.SIGTERM, self._sigterm)
             signal.signal(signal.SIGUSR1, self._sighup)
         except:
