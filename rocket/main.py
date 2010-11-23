@@ -55,16 +55,14 @@ class Rocket:
         else:
             self.interfaces = interfaces
 
-        if queue_size:
-            self.queue_size = queue_size
-        else:
+        if not queue_size:
             if hasattr(socket, 'SOMAXCONN'):
-                self.queue_size = socket.SOMAXCONN
+                queue_size = socket.SOMAXCONN
             else:
-                self.queue_size = DEFAULTS['LISTEN_QUEUE_SIZE']
+                queue_size = DEFAULTS['LISTEN_QUEUE_SIZE']
 
-        if max_threads and self.queue_size > max_threads:
-            self.queue_size = max_threads
+        if max_threads and queue_size > max_threads:
+            queue_size = max_threads
 
         self._monitor = Monitor()
         self._threadpool = T = ThreadPool(method,
@@ -152,9 +150,9 @@ class Rocket:
                 # to select on it.
                 listener.setblocking(False)
 
-            # Listen for new connections allowing self.queue_size number of
+            # Listen for new connections allowing queue_size number of
             # connections to wait before rejecting a connection.
-            listener.listen(self.queue_size)
+            listener.listen(queue_size)
 
             self.listeners.append(listener)
             self.listener_dict.update({listener: (i, secure)})
@@ -223,6 +221,7 @@ class Rocket:
 
         self._monitor.queue.put(None)
         self._threadpool.stop()
+
 
         self._monitor.join()
         if stoplogging:
