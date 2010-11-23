@@ -23,6 +23,7 @@ except ImportError:
 from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
 from .monitor import Monitor
 from .threadpool import ThreadPool
+from .worker import get_method
 
 # Setup Logging
 log = logging.getLogger('Rocket')
@@ -64,12 +65,16 @@ class Rocket:
         if max_threads and queue_size > max_threads:
             queue_size = max_threads
 
+        self.queue_size = queue_size
+
+        if isinstance(app_info, dict):
+            app_info['server_software'] = SERVER_SOFTWARE
+
         self._monitor = Monitor()
-        self._threadpool = T = ThreadPool(method,
+        self._threadpool = T = ThreadPool(get_method(method),
                                           app_info = app_info,
                                           min_threads=min_threads,
                                           max_threads=max_threads,
-                                          server_software=SERVER_SOFTWARE,
                                           timeout_queue = self._monitor.queue)
 
         self._monitor.out_queue = T.queue
@@ -152,7 +157,7 @@ class Rocket:
 
             # Listen for new connections allowing queue_size number of
             # connections to wait before rejecting a connection.
-            listener.listen(queue_size)
+            listener.listen(self.queue_size)
 
             self.listeners.append(listener)
             self.listener_dict.update({listener: (i, secure)})

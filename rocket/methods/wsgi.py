@@ -34,7 +34,7 @@ class WSGIWorker(Worker):
             multithreaded = self.app_info.get('max_threads') != 1
         else:
             multithreaded = False
-        self.base_environ = dict({'SERVER_SOFTWARE': self.server_software,
+        self.base_environ = dict({'SERVER_SOFTWARE': self.app_info['server_software'],
                                   'wsgi.multithread': multithreaded,
                                   })
         self.base_environ.update(BASE_ENV)

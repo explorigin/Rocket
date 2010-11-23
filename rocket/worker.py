@@ -34,7 +34,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, SERVER_SOFTWARE, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
+from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
 from .connection import Connection
 
 # Define Constants
@@ -57,7 +57,6 @@ class Worker(Thread):
     queue = None
     app_info = None
     timeout = 1
-    server_software = SERVER_SOFTWARE
 
     def __init__(self, *args, **kwargs):
         Thread.__init__(self, *args, **kwargs)
@@ -92,7 +91,7 @@ class Worker(Thread):
             else:
                 self.status = "999 Utter Server Failure"
                 if not self.pool.stop_server:
-                    tb = traceback.format_exception(*exc)
+                    tb = traceback.format_exception((typ, val, tb))
                     self.err_log.error('Unhandled Error when serving connection:\n' + tb)
                 return False
 

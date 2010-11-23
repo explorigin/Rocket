@@ -14,8 +14,7 @@ try:
 except ImportError:
     from Queue import Queue
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, NullHandler
-from .worker import get_method
+from . import DEFAULTS, NullHandler
 
 # Setup Logging
 log = logging.getLogger('Rocket.Errors.ThreadPool')
@@ -24,15 +23,12 @@ log.addHandler(NullHandler())
 class ThreadPool:
     """The ThreadPool class is a container class for all the worker threads. It
     manages the number of actively running threads."""
-    queue = None
-    threads = set()
 
     def __init__(self,
                  method,
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
                  app_info=None,
-                 server_software=SERVER_SOFTWARE,
                  timeout_queue=None):
 
         log.debug("Initializing ThreadPool.")
@@ -40,7 +36,7 @@ class ThreadPool:
         self.resize_lock = Lock()
         self.queue = Queue()
 
-        self.worker_class = W = get_method(method)
+        self.worker_class = W = method
         self.min_threads = min_threads
         self.max_threads = max_threads
         self.timeout_queue = timeout_queue
@@ -55,7 +51,6 @@ class ThreadPool:
 
         W.app_info = app_info
         W.pool = self
-        W.server_software = server_software
         W.queue = self.queue
         W.wait_queue = self.timeout_queue
         W.timeout = max_threads * 0.2 if max_threads != 0 else 2
