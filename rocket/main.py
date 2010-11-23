@@ -10,7 +10,6 @@ import time
 import socket
 import logging
 import traceback
-import select
 try:
     import ssl
     from ssl import SSLError
@@ -24,19 +23,11 @@ from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
 from .monitor import Monitor
 from .threadpool import ThreadPool
 from .worker import get_method
+from .listener import Listener
 
 # Setup Logging
 log = logging.getLogger('Rocket')
 log.addHandler(NullHandler())
-
-# Setup Polling if supported (but it doesn't work well on Jython)
-if hasattr(select, 'poll') and not IS_JYTHON:
-    try:
-        poll = select.epoll()
-    except:
-        poll = select.poll()
-else:
-    poll = None
 
 class Rocket:
     """The Rocket class is responsible for handling threads and accepting and
@@ -65,8 +56,6 @@ class Rocket:
         if max_threads and queue_size > max_threads:
             queue_size = max_threads
 
-        self.queue_size = queue_size
-
         if isinstance(app_info, dict):
             app_info['server_software'] = SERVER_SOFTWARE
 
@@ -79,6 +68,16 @@ class Rocket:
 
         self._monitor.out_queue = T.queue
         self._monitor.timeout = timeout
+
+        # Build our socket listeners
+        self.listeners = [Listener(i, queue_size, self._threadpool) for i in self.interfaces]
+        for ndx in range(len(self.listeners)-1, 0, -1):
+            if not self.listeners[ndx].ready:
+                del self.listeners[ndx]
+
+        if not self.listeners:
+            log.critical("No interfaces to listen on...closing.")
+            sys.exit(1)
 
     def start(self):
         log.info('Starting %s' % SERVER_SOFTWARE)
@@ -98,110 +97,16 @@ class Rocket:
         self._monitor.daemon = True
         self._monitor.start()
 
-        # Build our listening sockets (with appropriate options)
-        self.listeners = list()
-        self.listener_dict = dict()
-        for i in self.interfaces:
-            addr = i[0]
-            port = i[1]
-            secure = len(i) == 4 and i[2] != '' and i[3] != ''
-
-            listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-            if secure:
-                if not has_ssl:
-                    log.error("ssl module required to serve HTTPS.")
-                    del listener
-                    continue
-                elif not os.path.exists(i[2]):
-                    data = (i[2], i[0], i[1])
-                    log.error("Cannot find key file "
-                              "'%s'.  Cannot bind to %s:%s" % data)
-                    del listener
-                    continue
-                elif not os.path.exists(i[3]):
-                    data = (i[3], i[0], i[1])
-                    log.error("Cannot find certificate file "
-                              "'%s'.  Cannot bind to %s:%s" % data)
-                    del listener
-                    continue
-
-            if not listener:
-                log.error("Failed to get socket.")
-                raise socket.error
-
-            try:
-                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            except:
-                msg = "Cannot share socket.  Using %s:%i exclusively."
-                log.warning(msg % (addr, port))
-            try:
-                if not IS_JYTHON:
-                    listener.setsockopt(socket.IPPROTO_TCP,
-                                        socket.TCP_NODELAY,
-                                        1)
-            except:
-                msg = "Cannot set TCP_NODELAY, things might run a little slower"
-                log.warning(msg)
-            try:
-                listener.bind((addr, port))
-            except:
-                msg = "Socket %s:%i in use by other process and it won't share."
-                log.error(msg % (addr, port))
-                continue
-
-            if IS_JYTHON:
-                # Jython requires a socket to be in Non-blocking mode in order
-                # to select on it.
-                listener.setblocking(False)
-
-            # Listen for new connections allowing queue_size number of
-            # connections to wait before rejecting a connection.
-            listener.listen(self.queue_size)
-
-            self.listeners.append(listener)
-            self.listener_dict.update({listener: (i, secure)})
-
-        if not self.listeners:
-            log.critical("No interfaces to listen on...closing.")
-            sys.exit(1)
-
         msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i%s' % (l[0], l[1], '*' if s else '') for l, s in self.listener_dict.values()])
+        msg += ', '.join(['%s:%i%s' % (l.addr, l.port, '*' if l.secure else '') for l in self.listeners])
         log.info(msg)
 
-        # Add our polling objects
-        if poll:
-            log.info("Detected Polling.")
-            poll_dict = dict()
-            for l in self.listeners:
-                poll.register(l)
-                poll_dict.update({l.fileno():l})
+        for l in self.listeners:
+            l.start()
 
         while not self._threadpool.stop_server:
             try:
-                if poll:
-                    listeners = [poll_dict[x[0]] for x in poll.poll(POLL_TIMEOUT)]
-                else:
-                    listeners = select.select(self.listeners, [], [], POLL_TIMEOUT)[0]
-
-                for l in listeners:
-                    sock = l.accept()
-                    info, secure = self.listener_dict[l]
-                    if secure:
-                        try:
-                            sock = (ssl.wrap_socket(sock[0],
-                                                    keyfile=info[2],
-                                                    certfile=info[3],
-                                                    server_side=True,
-                                                    ssl_version=ssl.PROTOCOL_SSLv23), sock[1])
-                        except SSLError:
-                            # Generally this happens when an HTTP request is received on a secure socket.
-                            # We don't do anything because it will be detected by Worker and dealt with
-                            # appropriately.
-                            pass
-                    self._threadpool.queue.put((sock, info[1], secure))
-
+                self._monitor.join(POLL_TIMEOUT)
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 return self.stop()
@@ -224,9 +129,10 @@ class Rocket:
     def stop(self, stoplogging = True):
         log.info("Stopping Server")
 
+        for l in self.listeners:
+            l.ready = False
         self._monitor.queue.put(None)
         self._threadpool.stop()
-
 
         self._monitor.join()
         if stoplogging:
