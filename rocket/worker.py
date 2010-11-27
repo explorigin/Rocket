@@ -13,14 +13,12 @@ import traceback
 from wsgiref.headers import Headers
 from threading import Thread
 from datetime import datetime
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
+
 try:
     from urllib import unquote
 except ImportError:
     from urllib.parse import unquote
+
 try:
     from io import StringIO
 except ImportError:
@@ -28,6 +26,7 @@ except ImportError:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+
 try:
     from ssl import SSLError
 except ImportError:
@@ -52,18 +51,31 @@ class Worker(Thread):
     """The Worker class is a base class responsible for receiving connections
     and (a subclass) will run an application to process the the connection """
 
-    def __init__(self, app_info, queue, wait_queue, timeout, pool, *args, **kwargs):
+    def __init__(self,
+                 app_info,
+                 active_queue,
+                 monitor_queue,
+                 timeout,
+                 pool,  # FIXME - Can we remove this?
+                 *args,
+                 **kwargs):
+
         Thread.__init__(self, *args, **kwargs)
-        self.req_log = logging.getLogger('Rocket.Requests')
-        self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
-        self.req_log.addHandler(NullHandler())
-        self.err_log.addHandler(NullHandler())
-        
+
+        # Instance Variables
         self.app_info = app_info
-        self.queue = queue
-        self.wait_queue = wait_queue
+        self.active_queue = active_queue
+        self.monitor_queue = monitor_queue
         self.timeout = timeout
-        
+
+        # Request Log
+        self.req_log = logging.getLogger('Rocket.Requests')
+        self.req_log.addHandler(NullHandler())
+
+        # Error Log
+        self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
+        self.err_log.addHandler(NullHandler())
+
         # FIXME - Can we remove this?
         self.pool = pool
 
@@ -73,7 +85,7 @@ class Worker(Thread):
                 typ = SocketTimeout
         if typ == SocketTimeout:
             self.err_log.debug('Socket timed out')
-            self.wait_queue.put(self.conn)
+            self.monitor_queue.put(self.conn)
             return True
         if typ == SocketClosed:
             self.closeConnection = True
@@ -109,7 +121,7 @@ class Worker(Thread):
 
         # Enter thread main loop
         while True:
-            conn = self.queue.get()
+            conn = self.active_queue.get()
 
             if isinstance(conn, tuple):
                 # FIXME - Threads should not dynamically resize the pool
@@ -168,7 +180,11 @@ class Worker(Thread):
                             self.req_log.info(LOG_LINE % log_info)
 
                 if self.closeConnection:
-                    conn.close()
+                    try:
+                        conn.close()
+                    except:
+                        self.err_log.error(str(traceback.format_exc()))
+
                     break
 
     def run_app(self, conn):

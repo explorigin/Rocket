@@ -10,6 +10,12 @@ import time
 import socket
 import logging
 import traceback
+
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
 try:
     import ssl
     from ssl import SSLError
@@ -44,7 +50,7 @@ class Rocket:
                  handle_signals = True):
 
         self.handle_signals = handle_signals
-        
+
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
         else:
@@ -62,18 +68,20 @@ class Rocket:
         if isinstance(app_info, dict):
             app_info['server_software'] = SERVER_SOFTWARE
 
-        self._monitor = Monitor()
+        monitor_queue = Queue()
+        active_queue = Queue()
+
+        self._monitor = Monitor(monitor_queue, active_queue, timeout)
+
         self._threadpool = ThreadPool(get_method(method),
                                       app_info = app_info,
+                                      active_queue=active_queue,
+                                      monitor_queue = monitor_queue,
                                       min_threads=min_threads,
-                                      max_threads=max_threads,
-                                      timeout_queue = self._monitor.queue)
-
-        self._monitor.out_queue = self._threadpool.queue
-        self._monitor.timeout = timeout
+                                      max_threads=max_threads)
 
         # Build our socket listeners
-        self.listeners = [Listener(i, queue_size, self._threadpool) for i in self.interfaces]
+        self.listeners = [Listener(i, queue_size, active_queue) for i in self.interfaces]
         for ndx in range(len(self.listeners)-1, 0, -1):
             if not self.listeners[ndx].ready:
                 del self.listeners[ndx]
@@ -101,8 +109,10 @@ class Rocket:
         self._monitor.daemon = True
         self._monitor.start()
 
+        str_extract = lambda l: (l.addr, l.port, '*' if l.secure else '')
+
         msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i%s' % (l.addr, l.port, '*' if l.secure else '') for l in self.listeners])
+        msg += ', '.join(['%s:%i%s' % str_extract(l) for l in self.listeners])
         log.info(msg)
 
         for l in self.listeners:
@@ -119,6 +129,7 @@ class Rocket:
                     log.error(str(traceback.format_exc()))
                     continue
 
+        # FIXME - I think this is dead code
         if not self._threadpool.stop_server:
             self.stop()
 
@@ -133,11 +144,16 @@ class Rocket:
     def stop(self, stoplogging = True):
         log.info("Stopping Server")
 
+        # Stop listeners
         for l in self.listeners:
             l.ready = False
-        self._monitor.queue.put(None)
+            l.join()
+
+        # Stop Worker threads
         self._threadpool.stop()
 
+        # Stop Monitor
+        self._monitor.stop()
         self._monitor.join()
         if stoplogging:
             logging.shutdown()

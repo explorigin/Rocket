@@ -9,10 +9,6 @@ import time
 import socket
 import logging
 from threading import Lock
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
 # Import Package Modules
 from . import DEFAULTS, NullHandler
 
@@ -26,20 +22,22 @@ class ThreadPool:
 
     def __init__(self,
                  method,
+                 app_info,
+                 active_queue,
+                 monitor_queue,
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
-                 app_info=None,
-                 timeout_queue=None):
+                 ):
 
         log.debug("Initializing ThreadPool.")
         self.check_for_dead_threads = 0
         self.resize_lock = Lock()
-        self.queue = Queue()
+        self.active_queue = active_queue
 
         self.worker_class = W = method
         self.min_threads = min_threads
         self.max_threads = max_threads
-        self.timeout_queue = timeout_queue
+        self.monitor_queue = monitor_queue
         self.stop_server = False
         self.grow_threshold = int(max_threads/10) + 2
 
@@ -49,15 +47,15 @@ class ThreadPool:
         app_info.update(max_threads=max_threads,
                         min_threads=min_threads)
 
-        W.app_info = app_info
-        W.pool = self
-        W.queue = self.queue
-        W.wait_queue = self.timeout_queue
-        W.timeout = max_threads * 0.2 if max_threads != 0 else 2
+        timeout = max_threads * 0.2 if max_threads != 0 else 2
 
         self.threads = set()
         for x in range(min_threads):
-            worker = self.worker_class(app_info, queue, wait_queue, timeout, pool)
+            worker = self.worker_class(app_info,
+                                       self.active_queue,
+                                       self.monitor_queue,
+                                       timeout,
+                                       self)
             self.threads.add(worker)
 
     def start(self):
@@ -74,7 +72,7 @@ class ThreadPool:
 
         # Prompt the threads to die
         for t in self.threads:
-            self.queue.put(None)
+            self.active_queue.put(None)
 
         # Give them the gun
         for t in self.threads:
@@ -123,7 +121,7 @@ class ThreadPool:
         self.check_for_dead_threads += amount
 
         for x in range(amount):
-            self.queue.put(None)
+            self.active_queue.put(None)
 
     def dynamic_resize(self):
         locked = self.resize_lock.acquire(False)
@@ -132,7 +130,7 @@ class ThreadPool:
             if self.check_for_dead_threads > 0:
                 self.bring_out_your_dead()
 
-            queueSize = self.queue.qsize()
+            queueSize = self.active_queue.qsize()
             threadCount = len(self.threads)
 
             log.debug("Examining ThreadPool. %i threads and %i Q'd conxions"

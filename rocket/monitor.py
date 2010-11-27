@@ -7,19 +7,30 @@
 import time
 import logging
 import select
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
 from threading import Thread
 # Import Package Modules
 from . import IS_JYTHON, POLL_TIMEOUT
 
+
 class Monitor(Thread):
-    # Monitor worker base class.
-    queue = Queue() # Holds connections to be monitored
-    connections = set()
-    timeout = 0
+    # Monitor worker class.
+
+    def __init__(self,
+                 monitor_queue,
+                 active_queue,
+                 timeout,
+                 *args,
+                 **kwargs):
+
+        Thread.__init__(self, *args, **kwargs)
+
+        # Instance Variables
+        self.monitor_queue = monitor_queue
+        self.active_queue = active_queue
+        self.timeout = timeout
+
+        self.connections = set()
+        self.active = False
 
     def run(self):
         self.name = self.getName()
@@ -28,15 +39,16 @@ class Monitor(Thread):
             self.log.addHandler(logging.NullHandler())
         except:
             pass
+        self.active = True
 
         self.log.debug('Entering monitor loop.')
 
         # Enter thread main loop
-        while True:
+        while self.active:
             # Move the queued connections to the selection pool
-            while not self.queue.empty() or not len(self.connections):
+            while not self.monitor_queue.empty() or not len(self.connections):
                 self.log.debug('In "receive timed-out connections" loop.')
-                c = self.queue.get()
+                c = self.monitor_queue.get()
 
                 if not c:
                     # A non-client is a signal to die
@@ -72,7 +84,7 @@ class Monitor(Thread):
                     r.setblocking(True)
 
                 r.start_time = time.time()
-                self.out_queue.put(r)
+                self.active_queue.put(r)
                 self.connections.remove(r)
 
             # If we have any stale connections, kill them off.
@@ -93,6 +105,8 @@ class Monitor(Thread):
                         del c
 
     def stop(self):
+        self.active = False
+        
         self.log.debug('Flushing waiting connections')
         for c in self.connections:
             try:
@@ -101,8 +115,8 @@ class Monitor(Thread):
                 del c
 
         self.log.debug('Flushing queued connections')
-        while not self.queue.empty():
-            c = self.queue.get()
+        while not self.monitor_queue.empty():
+            c = self.monitor_queue.get()
             try:
                 c.close()
             finally:

@@ -43,11 +43,11 @@ class LimitingFileWrapper(FileWrapper):
         return FileWrapper.read(self, amt)
 
 class FileSystemWorker(Worker):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Builds some instance variables that will last the life of the
         thread."""
 
-        Worker.__init__(self)
+        Worker.__init__(self, *args, **kwargs)
 
         self.root = os.path.abspath(self.app_info['document_root'])
         self.display_index = self.app_info['display_index']
@@ -102,13 +102,13 @@ class FileSystemWorker(Worker):
             return b('')
         else:
             self.content_type = 'text/html'
-    
+
             dir_contents = [os.path.join(pth, x) for x in os.listdir(os.path.normpath(pth))]
             dir_contents.sort()
-            
+
             dirs = [rel_path(x)+'/' for x in dir_contents if os.path.isdir(x)]
             files = [rel_path(x) for x in dir_contents if os.path.isfile(x)]
-            
+
             self.data = [INDEX_HEADER % dict(path='/'+rpth)]
             if rpth:
                 self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'.join(rpth[:-1].split('/')[:-1]))]
@@ -118,7 +118,7 @@ class FileSystemWorker(Worker):
             self.data += [INDEX_FOOTER]
             self.headers['Content-Length'] = self.size = sum([len(x) for x in self.data])
             self.status = '200 OK'
-            
+
     def run_app(self, conn):
         self.status = "200 OK"
         self.size = 0

@@ -30,18 +30,22 @@ class Listener(Thread):
     """The Listener class is a class responsible for accepting connections
     and queuing them to be processed by a worker thread."""
 
-    def __init__(self, interface, queue_size, threadpool, *args, **kwargs):
+    def __init__(self, interface, queue_size, active_queue, *args, **kwargs):
         Thread.__init__(self, *args, **kwargs)
-        self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
-        self.err_log.addHandler(NullHandler())
-        
-        self.threadpool = threadpool
+
+        # Instance variables
+        self.active_queue = active_queue
         self.interface = interface
         self.addr = interface[0]
         self.port = interface[1]
         self.secure = len(interface) == 4 and interface[2] != '' and interface[3] != ''
         self.ready = False
 
+        # Error Log
+        self.err_log = logging.getLogger('Rocket.Errors.Port%i' % self.port)
+        self.err_log.addHandler(NullHandler())
+
+        # Build the socket
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         if not listener:
@@ -99,11 +103,26 @@ class Listener(Thread):
             # Listen for new connections allowing queue_size number of
             # connections to wait before rejecting a connection.
             listener.listen(queue_size)
-            
+
             self.listener = listener
 
             self.ready = True
 
+    def wrap_socket(self, sock_pair):
+        sock, client = sock_pair
+        try:
+            sock = ssl.wrap_socket(sock,
+                                   keyfile=self.interface[2],
+                                   certfile=self.interface[3],
+                                   server_side=True,
+                                   ssl_version=ssl.PROTOCOL_SSLv23)
+        except SSLError:
+            # Generally this happens when an HTTP request is received on a
+            # secure socket. We don't do anything because it will be detected
+            # by Worker and dealt with appropriately.
+            pass
+
+        return (sock, client)
 
     def run(self):
         if not self.ready:
@@ -115,35 +134,22 @@ class Listener(Thread):
             try:
                 sock = self.listener.accept()
                 if self.secure:
-                    try:
-                        sock = (ssl.wrap_socket(sock[0],
-                                                keyfile=self.interface[2],
-                                                certfile=self.interface[3],
-                                                server_side=True,
-                                                ssl_version=ssl.PROTOCOL_SSLv23), sock[1])
-                    except SSLError:
-                        # Generally this happens when an HTTP request is received on a secure socket.
-                        # We don't do anything because it will be detected by Worker and dealt with
-                        # appropriately.
-                        pass
-                self.threadpool.queue.put((sock, self.interface[1], self.secure))
+                    sock = self.wrap_socket(sock)
+
+                self.active_queue.put((sock, self.interface[1], self.secure))
 
             except socket.timeout:
                 # socket.timeout will be raised every POLL_TIMEOUT seconds
                 # When that happens, we check if it's time to die.
-                
+
                 if not self.ready:
                     self.err_log.info('Listener exiting.')
                     return
                 else:
                     continue
 
-            except KeyboardInterrupt:
-                # Capture a keyboard interrupt when running from a console
-                return
             except:
-                if not self.threadpool.stop_server:
-                    self.err_log.error(str(traceback.format_exc()))
+                self.err_log.error(str(traceback.format_exc()))
 
     def run_app(self, conn):
         # Must be overridden with a method reads the request from the socket
