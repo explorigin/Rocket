@@ -29,13 +29,5 @@ class RocketInitTest(unittest.TestCase):
             self.assert_(hasattr(c, m),
                          msg="Connection object does not have {0}".format(m))
 
-    def testClose(self):
-        c = connection.Connection(self.starttuple, self.serverport)
-        c.ssl = False
-        def raiseError(self):
-            raise RuntimeError
-        c.socket._sock.close = raiseError
-        self.assert_(c.socket._sock.close())
-
 if __name__ == '__main__':
     unittest.main()

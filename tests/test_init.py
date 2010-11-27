@@ -17,7 +17,7 @@ PY3K = sys.version_info[0] > 2
 # Define Tests
 class RocketInitTest(unittest.TestCase):
     def testMembers(self):
-        members = ["VERSION", "SERVER_NAME", "HTTP_SERVER_NAME", "BUF_SIZE", "IS_JYTHON", "IGNORE_ERRORS_ON_CLOSE", "DEFAULT_LISTEN_QUEUE_SIZE", "DEFAULT_MIN_THREADS", "DEFAULT_MAX_THREADS", "DEFAULTS", "PY3K", "u", "b", "Rocket", "CherryPyWSGIServer"]
+        members = ["VERSION", "SERVER_NAME", "SERVER_SOFTWARE", "HTTP_SERVER_SOFTWARE", "BUF_SIZE", "IS_JYTHON", "IGNORE_ERRORS_ON_CLOSE", "DEFAULT_LISTEN_QUEUE_SIZE", "DEFAULT_MIN_THREADS", "DEFAULT_MAX_THREADS", "DEFAULTS", "PY3K", "u", "b", "Rocket", "CherryPyWSGIServer"]
         for m in members:
             self.assert_(hasattr(rocket, m),
                          msg="rocket module does not have {0}".format(m))

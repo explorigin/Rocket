@@ -40,8 +40,11 @@ class Rocket:
                  min_threads=DEFAULTS['MIN_THREADS'],
                  max_threads=DEFAULTS['MAX_THREADS'],
                  queue_size = None,
-                 timeout = 600):
+                 timeout = 600,
+                 handle_signals = True):
 
+        self.handle_signals = handle_signals
+        
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
         else:
@@ -83,12 +86,13 @@ class Rocket:
         log.info('Starting %s' % SERVER_SOFTWARE)
 
         # Set up our shutdown signals
-        try:
-            import signal
-            signal.signal(signal.SIGTERM, self._sigterm)
-            signal.signal(signal.SIGUSR1, self._sighup)
-        except:
-            log.debug('This platform does not support signals.')
+        if self.handle_signals:
+            try:
+                import signal
+                signal.signal(signal.SIGTERM, self._sigterm)
+                signal.signal(signal.SIGUSR1, self._sighup)
+            except:
+                log.debug('This platform does not support signals.')
 
         # Start our worker threads
         self._threadpool.start()
