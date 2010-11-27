@@ -55,7 +55,10 @@ class ThreadPool:
         W.wait_queue = self.timeout_queue
         W.timeout = max_threads * 0.2 if max_threads != 0 else 2
 
-        self.threads = set([self.worker_class() for x in range(min_threads)])
+        self.threads = set()
+        for x in range(min_threads):
+            worker = self.worker_class(app_info, queue, wait_queue, timeout, pool)
+            self.threads.add(worker)
 
     def start(self):
         self.stop_server = False

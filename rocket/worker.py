@@ -52,18 +52,20 @@ class Worker(Thread):
     """The Worker class is a base class responsible for receiving connections
     and (a subclass) will run an application to process the the connection """
 
-    # All of these class attributes should be correctly populated by the
-    # parent thread or threadpool.
-    queue = None
-    app_info = None
-    timeout = 1
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app_info, queue, wait_queue, timeout, pool, *args, **kwargs):
         Thread.__init__(self, *args, **kwargs)
         self.req_log = logging.getLogger('Rocket.Requests')
         self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
         self.req_log.addHandler(NullHandler())
         self.err_log.addHandler(NullHandler())
+        
+        self.app_info = app_info
+        self.queue = queue
+        self.wait_queue = wait_queue
+        self.timeout = timeout
+        
+        # FIXME - Can we remove this?
+        self.pool = pool
 
     def _handleError(self, typ, val, tb):
         if typ == SSLError:
@@ -91,8 +93,10 @@ class Worker(Thread):
             else:
                 self.status = "999 Utter Server Failure"
                 if not self.pool.stop_server:
+                    # FIXME - Will this EVER happen?  If not, remove self.pool
                     tb = traceback.format_exception((typ, val, tb))
-                    self.err_log.error('Unhandled Error when serving connection:\n' + tb)
+                    self.err_log.error('Unhandled Error when serving '
+                                       'connection:\n' + tb)
                 return False
 
         self.closeConnection = True
@@ -108,6 +112,7 @@ class Worker(Thread):
             conn = self.queue.get()
 
             if isinstance(conn, tuple):
+                # FIXME - Threads should not dynamically resize the pool
                 self.pool.dynamic_resize()
                 conn = Connection(*conn)
 
@@ -154,6 +159,7 @@ class Worker(Thread):
                         break
                     else:
                         if self.request_line and not self.pool.stop_server:
+                            # FIXME - can I remove self.pool ?
                             log_info = dict(client_ip = conn.client_addr,
                                             time = datetime.now().strftime('%c'),
                                             status = self.status.split(' ')[0],

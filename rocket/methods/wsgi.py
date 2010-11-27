@@ -27,9 +27,11 @@ BASE_ENV = {'SERVER_NAME': SERVER_NAME,
             }
 
 class WSGIWorker(Worker):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Builds some instance variables that will last the life of the
         thread."""
+        Worker.__init__(self, *args, **kwargs)
+
         if isinstance(self.app_info, dict):
             multithreaded = self.app_info.get('max_threads') != 1
         else:
@@ -39,12 +41,11 @@ class WSGIWorker(Worker):
                                   })
         self.base_environ.update(BASE_ENV)
         # Grab our application
-        self.app = self.app_info['wsgi_app']
+        self.app = self.app_info.get('wsgi_app')
 
         if not callable(self.app):
             raise TypeError("The wsgi_app specified (%s) is not a valid WSGI application." % repr(self.app))
 
-        Worker.__init__(self)
 
     def build_environ(self, sock_file, conn):
         """ Build the execution environment. """

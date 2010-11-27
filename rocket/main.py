@@ -63,13 +63,13 @@ class Rocket:
             app_info['server_software'] = SERVER_SOFTWARE
 
         self._monitor = Monitor()
-        self._threadpool = T = ThreadPool(get_method(method),
-                                          app_info = app_info,
-                                          min_threads=min_threads,
-                                          max_threads=max_threads,
-                                          timeout_queue = self._monitor.queue)
+        self._threadpool = ThreadPool(get_method(method),
+                                      app_info = app_info,
+                                      min_threads=min_threads,
+                                      max_threads=max_threads,
+                                      timeout_queue = self._monitor.queue)
 
-        self._monitor.out_queue = T.queue
+        self._monitor.out_queue = self._threadpool.queue
         self._monitor.timeout = timeout
 
         # Build our socket listeners
