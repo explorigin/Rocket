@@ -147,14 +147,17 @@ class Rocket:
         # Stop listeners
         for l in self.listeners:
             l.ready = False
-            l.join()
+            if l.isAlive():
+                l.join()
 
         # Stop Worker threads
         self._threadpool.stop()
 
         # Stop Monitor
         self._monitor.stop()
-        self._monitor.join()
+        if self._monitor.isAlive():
+            self._monitor.join()
+
         if stoplogging:
             logging.shutdown()
 

@@ -8,6 +8,7 @@ import time
 import logging
 import select
 from threading import Thread
+
 # Import Package Modules
 from . import IS_JYTHON, POLL_TIMEOUT
 
@@ -48,12 +49,12 @@ class Monitor(Thread):
             # Move the queued connections to the selection pool
             while not self.monitor_queue.empty() or not len(self.connections):
                 self.log.debug('In "receive timed-out connections" loop.')
+
                 c = self.monitor_queue.get()
 
                 if not c:
                     # A non-client is a signal to die
                     self.log.debug('Received a death threat.')
-                    self.stop()
                     return
 
                 self.log.debug('Received a timed out connection.')
@@ -92,7 +93,7 @@ class Monitor(Thread):
                 now = time.time()
                 stale = set()
                 for c in self.connections:
-                    if now - c.start_time >= self.timeout:
+                    if (now - c.start_time) >= self.timeout:
                         stale.add(c)
 
                 for c in stale:
@@ -106,7 +107,10 @@ class Monitor(Thread):
 
     def stop(self):
         self.active = False
-        
+
+        # Place a None sentry value to cause the monitor to die.
+        self.monitor_queue.put(None)
+
         self.log.debug('Flushing waiting connections')
         for c in self.connections:
             try:

@@ -11,8 +11,6 @@ try:
     has_ssl = True
 except ImportError:
     has_ssl = False
-# Import Package Modules
-from . import PY3K
 
 class Connection:
     def __init__(self, sock_tuple, port, secure=False):
