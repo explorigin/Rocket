@@ -11,7 +11,7 @@ try:
     has_ssl = True
 except ImportError:
     has_ssl = False
-from . import IS_JYTHON
+from . import IS_JYTHON, SOCKET_TIMEOUT
 
 class Connection:
     def __init__(self, sock_tuple, port, secure=False):
