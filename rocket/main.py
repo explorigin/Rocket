@@ -25,7 +25,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, POLL_TIMEOUT
+from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, THREAD_STOP_CHECK_INTERVAL
 from .monitor import Monitor
 from .threadpool import ThreadPool
 from .worker import get_method
@@ -90,6 +90,14 @@ class Rocket:
             log.critical("No interfaces to listen on...closing.")
             sys.exit(1)
 
+    def _sigterm(self, signum, frame):
+        log.info('Received SIGTERM')
+        self.stop()
+
+    def _sighup(self, signum, frame):
+        log.info('Received SIGHUP')
+        self.restart()
+
     def start(self):
         log.info('Starting %s' % SERVER_SOFTWARE)
 
@@ -120,26 +128,17 @@ class Rocket:
 
         while not self._threadpool.stop_server:
             try:
-                self._monitor.join(POLL_TIMEOUT)
+                time.sleep(THREAD_STOP_CHECK_INTERVAL)
+                self._threadpool.dynamic_resize()
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
-                return self.stop()
+                break;
             except:
                 if not self._threadpool.stop_server:
                     log.error(str(traceback.format_exc()))
                     continue
 
-        # FIXME - I think this is dead code
-        if not self._threadpool.stop_server:
-            self.stop()
-
-    def _sigterm(self, signum, frame):
-        log.info('Received SIGTERM')
-        self.stop()
-
-    def _sighup(self, signum, frame):
-        log.info('Received SIGHUP')
-        self.restart()
+        return self.stop()
 
     def stop(self, stoplogging = True):
         log.info("Stopping Server")

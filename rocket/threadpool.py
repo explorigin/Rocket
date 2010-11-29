@@ -47,15 +47,11 @@ class ThreadPool:
         app_info.update(max_threads=max_threads,
                         min_threads=min_threads)
 
-        timeout = max_threads * 0.2 if max_threads != 0 else 2
-
         self.threads = set()
         for x in range(min_threads):
             worker = self.worker_class(app_info,
                                        self.active_queue,
-                                       self.monitor_queue,
-                                       timeout,
-                                       self)
+                                       self.monitor_queue)
             self.threads.add(worker)
 
     def start(self):

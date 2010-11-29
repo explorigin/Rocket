@@ -11,7 +11,9 @@ if __name__ == '__main__':
     h = logging.StreamHandler()
     h.setFormatter(fmt)
     log.addHandler(h)
+    
+    app_info = dict(document_root=os.getcwd(),
+                    display_index=True)
     Rocket(interfaces=('127.0.0.1', 80),
-           method='fs', app_info=dict(document_root=os.getcwd(),
-                                      display_index=True),
-           min_threads=64, max_threads=0, timeout=60).start()
+           method='fs',
+           app_info=app_info).start()

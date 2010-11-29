@@ -10,7 +10,7 @@ import select
 from threading import Thread
 
 # Import Package Modules
-from . import IS_JYTHON, POLL_TIMEOUT
+from . import IS_JYTHON, THREAD_STOP_CHECK_INTERVAL, NullHandler
 
 
 class Monitor(Thread):
@@ -36,10 +36,8 @@ class Monitor(Thread):
     def run(self):
         self.name = self.getName()
         self.log = logging.getLogger('Rocket.Monitor')
-        try:
-            self.log.addHandler(logging.NullHandler())
-        except:
-            pass
+        self.log.addHandler(NullHandler())
+
         self.active = True
 
         self.log.debug('Entering monitor loop.')
@@ -72,7 +70,7 @@ class Monitor(Thread):
             # Wait on those connections
             self.log.debug('Blocking on connections')
             readable = select.select(list(self.connections),
-                                     [], [], POLL_TIMEOUT)[0]
+                                     [], [], THREAD_STOP_CHECK_INTERVAL)[0]
 
             # If we have any readable connections, put them back
             for r in readable:

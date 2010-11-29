@@ -23,7 +23,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler, POLL_TIMEOUT
+from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler, THREAD_STOP_CHECK_INTERVAL
 from .connection import Connection
 
 class Listener(Thread):
@@ -99,7 +99,7 @@ class Listener(Thread):
             else:
                 # Otherwise, we want socket operations to timeout so as to not
                 # tie up threads.
-                listener.settimeout(POLL_TIMEOUT)
+                listener.settimeout(THREAD_STOP_CHECK_INTERVAL)
             # Listen for new connections allowing queue_size number of
             # connections to wait before rejecting a connection.
             listener.listen(queue_size)
@@ -139,7 +139,7 @@ class Listener(Thread):
                 self.active_queue.put((sock, self.interface[1], self.secure))
 
             except socket.timeout:
-                # socket.timeout will be raised every POLL_TIMEOUT seconds
+                # socket.timeout will be raised every THREAD_STOP_CHECK_INTERVAL seconds
                 # When that happens, we check if it's time to die.
 
                 if not self.ready:

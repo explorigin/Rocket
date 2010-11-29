@@ -55,8 +55,6 @@ class Worker(Thread):
                  app_info,
                  active_queue,
                  monitor_queue,
-                 timeout,
-                 pool,  # FIXME - Can we remove this?
                  *args,
                  **kwargs):
 
@@ -66,7 +64,6 @@ class Worker(Thread):
         self.app_info = app_info
         self.active_queue = active_queue
         self.monitor_queue = monitor_queue
-        self.timeout = timeout
 
         # Request Log
         self.req_log = logging.getLogger('Rocket.Requests')
@@ -75,9 +72,6 @@ class Worker(Thread):
         # Error Log
         self.err_log = logging.getLogger('Rocket.Errors.'+self.getName())
         self.err_log.addHandler(NullHandler())
-
-        # FIXME - Can we remove this?
-        self.pool = pool
 
     def _handleError(self, typ, val, tb):
         if typ == SSLError:
@@ -104,11 +98,9 @@ class Worker(Thread):
                 return False
             else:
                 self.status = "999 Utter Server Failure"
-                if not self.pool.stop_server:
-                    # FIXME - Will this EVER happen?  If not, remove self.pool
-                    tb = traceback.format_exception((typ, val, tb))
-                    self.err_log.error('Unhandled Error when serving '
-                                       'connection:\n' + tb)
+                tb = traceback.format_exception((typ, val, tb))
+                self.err_log.error('Unhandled Error when serving '
+                                   'connection:\n' + tb)
                 return False
 
         self.closeConnection = True
@@ -123,25 +115,14 @@ class Worker(Thread):
         while True:
             conn = self.active_queue.get()
 
-            if isinstance(conn, tuple):
-                # FIXME - Threads should not dynamically resize the pool
-                self.pool.dynamic_resize()
-                conn = Connection(*conn)
-
             if not conn:
                 # A non-client is a signal to die
                 self.err_log.debug('Received a death threat.')
                 return
 
+            conn = Connection(*conn)
+
             self.conn = conn
-
-            if IS_JYTHON:
-                # In Jython we must set TCP_NODELAY here.
-                # See: http://bugs.jython.org/issue1309
-                conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-            if hasattr(conn,'settimeout') and self.timeout:
-                conn.settimeout(self.timeout)
 
             if conn.ssl != conn.secure:
                 self.err_log.info('Received HTTP connection on HTTPS port.')
@@ -170,8 +151,7 @@ class Worker(Thread):
                     if handled:
                         break
                     else:
-                        if self.request_line and not self.pool.stop_server:
-                            # FIXME - can I remove self.pool ?
+                        if self.request_line:
                             log_info = dict(client_ip = conn.client_addr,
                                             time = datetime.now().strftime('%c'),
                                             status = self.status.split(' ')[0],

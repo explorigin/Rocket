@@ -21,7 +21,7 @@ use_setuptools()
 from setuptools import find_packages
 from distutils.core import Command
 
-package_imports = re.compile(r'^(\s*from \.[\w\.]* import .*)$', re.I | re.M)
+package_imports = re.compile(r'^(\s*from \.[\w\.]* import .*( as \w+)?)$', re.I | re.M)
 
 class build_monolithic(Command):
     user_options = []

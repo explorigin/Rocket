@@ -97,6 +97,10 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
 
 * timeout_ - An integer number of seconds to listen to a connection for a new request before closing it.  Defaults to **600**.
 
+.. _handle_signals:
+
+* handle_signals_ - A boolean indicating whether or not Rocket should respond to UNIX-style process signals (if the platform supports signals).  Defaults to **True**.
+
 
 
 .. _CherryPyWSGIServer:
@@ -142,7 +146,7 @@ An instance of Rocket (or CherryPyWSGIServer) two methods for external use:
 
 * start() - Start the main server loop.  This call will block until server execution is interrupted by:
     - KeyboardInterrupt for a server running in a console.
-    - The process receives a SIGTERM or SIGHUP signal for platforms that support signals.
+    - The process receives a SIGTERM or SIGHUP signal for platforms that support signals and handle_signals_ is **True**
     - A running thread signals the server to stop.
     - An external thread calls the stop_ method.
 

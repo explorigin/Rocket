@@ -11,6 +11,7 @@ try:
     has_ssl = True
 except ImportError:
     has_ssl = False
+from . import IS_JYTHON
 
 class Connection:
     def __init__(self, sock_tuple, port, secure=False):
@@ -20,6 +21,14 @@ class Connection:
         self.start_time = time.time()
         self.ssl = has_ssl and isinstance(self.socket, ssl.SSLSocket)
         self.secure = secure
+
+        if IS_JYTHON:
+            # In Jython we must set TCP_NODELAY here.
+            # See: http://bugs.jython.org/issue1309
+            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+        if hasattr(self.socket, 'settimeout'):
+            self.socket.settimeout(SOCKET_TIMEOUT)
 
         for x in dir(self.socket):
             if not hasattr(self, x):

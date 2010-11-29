@@ -16,12 +16,13 @@ SERVER_NAME = socket.gethostname()
 SERVER_SOFTWARE = 'Rocket %s' % VERSION
 HTTP_SERVER_SOFTWARE = '%s Python/%s' % (SERVER_SOFTWARE, sys.version.split(' ')[0])
 BUF_SIZE = 16384
-POLL_TIMEOUT = 1
+SOCKET_TIMEOUT = 0.5 # in secs
+THREAD_STOP_CHECK_INTERVAL = 1 # in secs, How often should threads check for a server stop message?
 IS_JYTHON = platform.system() == 'Java' # Handle special cases for Jython
 IGNORE_ERRORS_ON_CLOSE = set([errno.ECONNABORTED, errno.ECONNRESET])
 DEFAULT_LISTEN_QUEUE_SIZE = 5
 DEFAULT_MIN_THREADS = 10
-DEFAULT_MAX_THREADS = 128
+DEFAULT_MAX_THREADS = 0
 DEFAULTS = dict(LISTEN_QUEUE_SIZE = DEFAULT_LISTEN_QUEUE_SIZE,
                 MIN_THREADS = DEFAULT_MIN_THREADS,
                 MAX_THREADS = DEFAULT_MAX_THREADS)
