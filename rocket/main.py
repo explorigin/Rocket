@@ -25,7 +25,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, IS_JYTHON, NullHandler, THREAD_STOP_CHECK_INTERVAL
+from . import DEFAULTS, SERVER_SOFTWARE, NullHandler, THREAD_STOP_CHECK_INTERVAL
 from .monitor import Monitor
 from .threadpool import ThreadPool
 from .worker import get_method

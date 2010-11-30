@@ -33,7 +33,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
+from . import IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
 from .connection import Connection
 
 # Define Constants

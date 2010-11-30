@@ -23,7 +23,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import SERVER_NAME, BUF_SIZE, IS_JYTHON, IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler, THREAD_STOP_CHECK_INTERVAL
+from . import IS_JYTHON, NullHandler, THREAD_STOP_CHECK_INTERVAL
 from .connection import Connection
 
 class Listener(Thread):
@@ -38,7 +38,9 @@ class Listener(Thread):
         self.interface = interface
         self.addr = interface[0]
         self.port = interface[1]
-        self.secure = len(interface) == 4 and interface[2] != '' and interface[3] != ''
+        self.secure = len(interface) == 4 and \
+                      os.path.exists(interface[2]) and \
+                      os.path.exists(interface[3])
         self.ready = False
 
         # Error Log
@@ -92,14 +94,9 @@ class Listener(Thread):
             msg = "Socket %s:%i in use by other process and it won't share."
             self.err_log.error(msg % (self.addr, self.port))
         else:
-            if IS_JYTHON:
-                # Jython requires a socket to be in Non-blocking mode in order
-                # to select on it.
-                listener.setblocking(False)
-            else:
-                # Otherwise, we want socket operations to timeout so as to not
-                # tie up threads.
-                listener.settimeout(THREAD_STOP_CHECK_INTERVAL)
+            # We want socket operations to timeout periodically so we can
+            # check if the server is shutting down
+            listener.settimeout(THREAD_STOP_CHECK_INTERVAL)
             # Listen for new connections allowing queue_size number of
             # connections to wait before rejecting a connection.
             listener.listen(queue_size)
@@ -139,15 +136,14 @@ class Listener(Thread):
                 self.active_queue.put((sock, self.interface[1], self.secure))
 
             except socket.timeout:
-                # socket.timeout will be raised every THREAD_STOP_CHECK_INTERVAL seconds
-                # When that happens, we check if it's time to die.
+                # socket.timeout will be raised every THREAD_STOP_CHECK_INTERVAL
+                # seconds.  When that happens, we check if it's time to die.
 
                 if not self.ready:
                     self.err_log.info('Listener exiting.')
                     return
                 else:
                     continue
-
             except:
                 self.err_log.error(str(traceback.format_exc()))
 
