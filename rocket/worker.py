@@ -120,7 +120,8 @@ class Worker(Thread):
                 self.err_log.debug('Received a death threat.')
                 return
 
-            conn = Connection(*conn)
+            if isinstance(conn, tuple):
+                conn = Connection(*conn)
 
             self.conn = conn
 

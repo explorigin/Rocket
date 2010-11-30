@@ -106,9 +106,6 @@ class Monitor(Thread):
     def stop(self):
         self.active = False
 
-        # Place a None sentry value to cause the monitor to die.
-        self.monitor_queue.put(None)
-
         self.log.debug('Flushing waiting connections')
         for c in self.connections:
             try:
@@ -119,7 +116,12 @@ class Monitor(Thread):
         self.log.debug('Flushing queued connections')
         while not self.monitor_queue.empty():
             c = self.monitor_queue.get()
+            
             try:
                 c.close()
             finally:
                 del c
+
+        # Place a None sentry value to cause the monitor to die.
+        self.monitor_queue.put(None)
+

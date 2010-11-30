@@ -126,15 +126,19 @@ class Rocket:
         for l in self.listeners:
             l.start()
 
-        while not self._threadpool.stop_server:
+        tp = self._threadpool
+        aq = tp.active_queue
+        dynamic_resize = tp.dynamic_resize
+        
+        while not tp.stop_server:
             try:
                 time.sleep(THREAD_STOP_CHECK_INTERVAL)
-                self._threadpool.dynamic_resize()
+                dynamic_resize()
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 break;
             except:
-                if not self._threadpool.stop_server:
+                if not tp.stop_server:
                     log.error(str(traceback.format_exc()))
                     continue
 

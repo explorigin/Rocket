@@ -8,7 +8,6 @@ import sys
 import time
 import socket
 import logging
-from threading import Lock
 # Import Package Modules
 from . import DEFAULTS, NullHandler
 
@@ -31,7 +30,6 @@ class ThreadPool:
 
         log.debug("Initializing ThreadPool.")
         self.check_for_dead_threads = 0
-        self.resize_lock = Lock()
         self.active_queue = active_queue
 
         self.worker_class = W = method
@@ -79,13 +77,10 @@ class ThreadPool:
             t.join()
 
         # Clean up the mess
-        self.resize_lock.acquire()
         self.bring_out_your_dead()
-        self.resize_lock.release()
 
     def bring_out_your_dead(self):
         # Remove dead threads from the pool
-        # Assumes resize_lock is acquired from calling thread
 
         dead_threads = [t for t in self.threads if not t.isAlive()]
         for t in dead_threads:
@@ -94,7 +89,6 @@ class ThreadPool:
         self.check_for_dead_threads -= len(dead_threads)
 
     def grow(self, amount=None):
-        # Assumes resize_lock is acquired from calling thread
         if self.stop_server:
             return
 
@@ -111,7 +105,6 @@ class ThreadPool:
             new_worker.start()
 
     def shrink(self, amount=1):
-        # Assumes resize_lock is acquired from calling thread
         log.debug("Shrinking by %i." % amount)
 
         self.check_for_dead_threads += amount
@@ -120,9 +113,7 @@ class ThreadPool:
             self.active_queue.put(None)
 
     def dynamic_resize(self):
-        locked = self.resize_lock.acquire(False)
-        if locked and \
-           (self.max_threads > self.min_threads or self.max_threads == 0):
+        if (self.max_threads > self.min_threads or self.max_threads == 0):
             if self.check_for_dead_threads > 0:
                 self.bring_out_your_dead()
 
@@ -139,6 +130,3 @@ class ThreadPool:
                  and threadCount < self.max_threads:
 
                 self.grow(queueSize)
-
-        if locked:
-            self.resize_lock.release()
