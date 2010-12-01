@@ -8,12 +8,17 @@ import os
 import sys
 import socket
 import traceback
-from email.Utils import formatdate  # Caps Utils for Py2.4 compatibility
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 # Import Package Modules
 from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, u, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
+
+if PY3K:
+    from email.utils import formatdate
+else:
+    # Caps Utils for Py2.4 compatibility
+    from email.Utils import formatdate
 
 # Define Constants
 NEWLINE = b('\r\n')
@@ -43,7 +48,7 @@ class WSGIWorker(Worker):
         # Grab our application
         self.app = self.app_info.get('wsgi_app')
 
-        if not callable(self.app):
+        if not hasattr(self.app, "__call__"):
             raise TypeError("The wsgi_app specified (%s) is not a valid WSGI application." % repr(self.app))
 
 

@@ -5,8 +5,8 @@ from wsgiref.simple_server import demo_app
 from rocket import Rocket
 
 if __name__ == '__main__':
-    log = logging.getLogger('Rocket')
-    log.setLevel(logging.DEBUG)
+    log = logging.getLogger('Rocket.Requests')
+    log.setLevel(logging.INFO)
     fmt = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
     h = logging.StreamHandler()
     h.setFormatter(fmt)

@@ -116,7 +116,7 @@ class FileSystemWorker(Worker):
             self.data += ['<tr><th>Files</th></tr>']
             self.data += [INDEX_ROW % dict(name=os.path.basename(x), link=os.path.join(rpth, os.path.basename(x)), cls='file') for x in files]
             self.data += [INDEX_FOOTER]
-            self.headers['Content-Length'] = self.size = sum([len(x) for x in self.data])
+            self.headers['Content-Length'] = self.size = str(sum([len(x) for x in self.data]))
             self.status = '200 OK'
 
     def run_app(self, conn):
