@@ -8,7 +8,7 @@ import os
 import sys
 import socket
 import traceback
-from email.utils import formatdate
+from email.Utils import formatdate  # Caps Utils for Py2.4 compatibility
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 # Import Package Modules
@@ -126,7 +126,10 @@ class WSGIWorker(Worker):
             client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
             if self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
                 # HTTP = 1.1 defaults to keep-alive connections
-                h_set['Connection'] = client_conn if client_conn else 'keep-alive'
+                if client_conn:
+                    h_set['Connection'] = client_conn
+                else:
+                    h_set['Connection'] = 'keep-alive'
             else:
                 # HTTP < 1.1 supports keep-alive but it's quirky so we don't support it
                 h_set['Connection'] = 'close'

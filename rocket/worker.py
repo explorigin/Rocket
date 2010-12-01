@@ -200,13 +200,15 @@ class Worker(Thread):
         try:
             # Grab the request line
             d = sock_file.readline()
-            d = d.decode('ISO-8859-1') if PY3K else d
+            if PY3K:
+                d = d.decode('ISO-8859-1')
 
             if d == '\r\n':
                 # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
                 self.err_log.debug('Client sent newline')
                 d = sock_file.readline()
-                d = d.decode('ISO-8859-1') if PY3K else d
+                if PY3K:
+                    d = d.decode('ISO-8859-1')
         except socket.timeout:
             raise SocketTimeout("Socket timed out before request.")
 
@@ -257,7 +259,8 @@ class Worker(Thread):
         lval = None
         while True:
             try:
-                l = str(l, 'ISO-8859-1') if PY3K else l
+                if PY3K:
+                    l = str(l, 'ISO-8859-1')
             except UnicodeDecodeError:
                 self.err_log.warning('Client sent invalid header: ' + repr(l))
 

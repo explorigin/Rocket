@@ -123,7 +123,9 @@ class Rocket:
         self._monitor.daemon = True
         self._monitor.start()
 
-        str_extract = lambda l: (l.addr, l.port, '*' if l.secure else '')
+        # I know that EXPR and A or B is bad but I'm keeping it for Py2.4
+        # compatibility.
+        str_extract = lambda l: (l.addr, l.port, l.secure and '*' or '')
 
         msg = 'Listening on sockets: '
         msg += ', '.join(['%s:%i%s' % str_extract(l) for l in self.listeners])
@@ -138,8 +140,8 @@ class Rocket:
 
         while not tp.stop_server:
             try:
-                time.sleep(THREAD_STOP_CHECK_INTERVAL)
                 dynamic_resize()
+                time.sleep(THREAD_STOP_CHECK_INTERVAL)
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 break;

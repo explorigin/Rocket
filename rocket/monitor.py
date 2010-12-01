@@ -50,7 +50,7 @@ class Monitor(Thread):
 
                 c = self.monitor_queue.get()
 
-                if not c:
+                if None == c:
                     # A non-client is a signal to die
                     self.log.debug('Received a death threat.')
                     return
@@ -95,7 +95,8 @@ class Monitor(Thread):
                         stale.add(c)
 
                 for c in stale:
-                    data = (c.client_addr, c.server_port, '*' if c.ssl else '')
+                    # "EXPR and A or B" kept for Py2.4 compatibility
+                    data = (c.client_addr, c.server_port, c.ssl and '*' or '')
                     self.log.debug('Flushing stale connection: %s:%i%s' % data)
                     self.connections.remove(c)
                     try:
@@ -117,6 +118,9 @@ class Monitor(Thread):
         while not self.monitor_queue.empty():
             c = self.monitor_queue.get()
             
+            if None == c:
+                continue
+
             try:
                 c.close()
             finally:
@@ -124,4 +128,3 @@ class Monitor(Thread):
 
         # Place a None sentry value to cause the monitor to die.
         self.monitor_queue.put(None)
-

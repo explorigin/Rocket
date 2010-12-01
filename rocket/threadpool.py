@@ -85,7 +85,11 @@ class ThreadPool:
         dead_threads = [t for t in self.threads if not t.isAlive()]
         for t in dead_threads:
             log.debug("Removing dead thread: %s." % t.getName())
-            self.threads.remove(t)
+            try:
+                # Py2.4 complains here so we put it in a try block
+                self.threads.remove(t)
+            except:
+                pass
         self.check_for_dead_threads -= len(dead_threads)
 
     def grow(self, amount=None):
