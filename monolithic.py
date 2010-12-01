@@ -47,15 +47,15 @@ class build_monolithic(Command):
 
         out = open(filepath, 'w')
 
-        first = True
+        show_copyright = True
         for filename in self.files:
             f = open(filename, 'r')
             filedata = f.readlines()
             f.close()
 
-            if first:
+            if show_copyright:
                 filedata = ''.join(filedata)
-                first = False
+                show_copyright = False
             else:
                 filedata = ''.join(filedata[4:])
                 out.write("# Monolithic build...start of module: %s\n" % filename)
