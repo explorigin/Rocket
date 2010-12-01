@@ -25,7 +25,7 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, NullHandler, THREAD_STOP_CHECK_INTERVAL
+from . import DEFAULTS, SERVER_SOFTWARE, NullHandler, THREAD_STOP_CHECK_INTERVAL, IS_JYTHON
 from .monitor import Monitor
 from .threadpool import ThreadPool
 from .worker import get_method
@@ -41,10 +41,10 @@ class Rocket:
 
     def __init__(self,
                  interfaces = ('127.0.0.1', 8000),
-                 method='wsgi',
+                 method = 'wsgi',
                  app_info = None,
-                 min_threads=DEFAULTS['MIN_THREADS'],
-                 max_threads=DEFAULTS['MAX_THREADS'],
+                 min_threads = None,
+                 max_threads = None,
                  queue_size = None,
                  timeout = 600,
                  handle_signals = True):
@@ -55,6 +55,12 @@ class Rocket:
             self.interfaces = [interfaces]
         else:
             self.interfaces = interfaces
+
+        if None == min_threads:
+            min_threads = DEFAULTS['MIN_THREADS']
+
+        if None == max_threads:
+            max_threads = DEFAULTS['MAX_THREADS']
 
         if not queue_size:
             if hasattr(socket, 'SOMAXCONN'):
@@ -129,7 +135,7 @@ class Rocket:
         tp = self._threadpool
         aq = tp.active_queue
         dynamic_resize = tp.dynamic_resize
-        
+
         while not tp.stop_server:
             try:
                 time.sleep(THREAD_STOP_CHECK_INTERVAL)
