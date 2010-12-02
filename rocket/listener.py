@@ -5,14 +5,11 @@
 
 # Import System Modules
 import os
+import sys
 import socket
 import logging
 import traceback
 from threading import Thread
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
 
 try:
     import ssl
@@ -24,7 +21,6 @@ except ImportError:
         pass
 # Import Package Modules
 from . import IS_JYTHON, NullHandler, THREAD_STOP_CHECK_INTERVAL
-from .connection import Connection
 
 class Listener(Thread):
     """The Listener class is a class responsible for accepting connections

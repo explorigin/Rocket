@@ -4,14 +4,12 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
-import os
 import sys
 import socket
-import traceback
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 # Import Package Modules
-from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, u, BUF_SIZE, PY3K
+from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
 
 if PY3K:

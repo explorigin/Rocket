@@ -4,9 +4,6 @@
 # Copyright (c) 2010 Timothy Farrell
 
 # Import System Modules
-import sys
-import time
-import socket
 import logging
 # Import Package Modules
 from . import DEFAULTS, NullHandler
@@ -32,7 +29,7 @@ class ThreadPool:
         self.check_for_dead_threads = 0
         self.active_queue = active_queue
 
-        self.worker_class = W = method
+        self.worker_class = method
         self.min_threads = min_threads
         self.max_threads = max_threads
         self.monitor_queue = monitor_queue

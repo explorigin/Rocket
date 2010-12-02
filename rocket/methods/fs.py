@@ -5,15 +5,13 @@
 
 # Import System Modules
 import os
-import sys
 import time
-import socket
 import mimetypes
 from email.utils import formatdate
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 # Import Package Modules
-from .. import HTTP_SERVER_SOFTWARE, b, u, BUF_SIZE
+from .. import HTTP_SERVER_SOFTWARE, b, BUF_SIZE
 from ..worker import Worker
 
 # Define Constants
@@ -72,9 +70,9 @@ class FileSystemWorker(Worker):
             self.headers['Cache-Control'] = 'private'
             self.headers['Content-Length'] = str(self.size)
             if self.etag:
-                h.add_header('Etag', self.etag)
+                self.headers.add_header('Etag', self.etag)
             if self.expires:
-                h.add_header('Expires', self.expires)
+                self.headers.add_header('Expires', self.expires)
 
             try:
                 # Implement 206 partial file support.

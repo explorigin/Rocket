@@ -4,6 +4,7 @@
 # Copyright (c) 2009 Timothy Farrell
 
 # Import System Modules
+import sys
 import time
 import socket
 try:

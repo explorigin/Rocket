@@ -4,7 +4,6 @@
 # Copyright (c) 2010 Timothy Farrell
 
 # Import System Modules
-import os
 import sys
 import time
 import socket
@@ -16,16 +15,8 @@ try:
 except ImportError:
     from Queue import Queue
 
-try:
-    import ssl
-    from ssl import SSLError
-    has_ssl = True
-except ImportError:
-    has_ssl = False
-    class SSLError(socket.error):
-        pass
 # Import Package Modules
-from . import DEFAULTS, SERVER_SOFTWARE, NullHandler, THREAD_STOP_CHECK_INTERVAL, IS_JYTHON
+from . import DEFAULTS, SERVER_SOFTWARE, NullHandler, THREAD_STOP_CHECK_INTERVAL
 from .monitor import Monitor
 from .threadpool import ThreadPool
 from .worker import get_method
@@ -135,7 +126,6 @@ class Rocket:
             l.start()
 
         tp = self._threadpool
-        aq = tp.active_queue
         dynamic_resize = tp.dynamic_resize
 
         while not tp.stop_server:
