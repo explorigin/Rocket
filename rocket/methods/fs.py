@@ -110,9 +110,9 @@ class FileSystemWorker(Worker):
             self.data = [INDEX_HEADER % dict(path='/'+rpth)]
             if rpth:
                 self.data += [INDEX_ROW % dict(name='(parent directory)', cls='dir parent', link='/'.join(rpth[:-1].split('/')[:-1]))]
-            self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), link=os.path.join(rpth, os.path.basename(x[:-1])), cls='dir') for x in dirs]
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x[:-1]), link=os.path.join(rpth, os.path.basename(x[:-1])).replace('\\', '/'), cls='dir') for x in dirs]
             self.data += ['<tr><th>Files</th></tr>']
-            self.data += [INDEX_ROW % dict(name=os.path.basename(x), link=os.path.join(rpth, os.path.basename(x)), cls='file') for x in files]
+            self.data += [INDEX_ROW % dict(name=os.path.basename(x), link=os.path.join(rpth, os.path.basename(x)).replace('\\', '/'), cls='file') for x in files]
             self.data += [INDEX_FOOTER]
             self.headers['Content-Length'] = self.size = str(sum([len(x) for x in self.data]))
             self.status = '200 OK'
