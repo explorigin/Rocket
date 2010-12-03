@@ -125,7 +125,9 @@ class FileSystemWorker(Worker):
         self.content_type = 'text/plain'
         self.content_length = None
 
-        self.err_log.debug('Getting sock_file')
+        if __debug__:
+            self.err_log.debug('Getting sock_file')
+            
         # Build our file-like object
         sock_file = conn.makefile('rb',BUF_SIZE)
         request = self.read_request_line(sock_file)
@@ -138,7 +140,9 @@ class FileSystemWorker(Worker):
             rpath = request.get('path', '').lstrip('/')
             filepath = os.path.join(self.root, rpath)
             filepath = os.path.abspath(filepath)
-            self.err_log.debug('Request for path: %s' % filepath)
+            if __debug__:
+                self.err_log.debug('Request for path: %s' % filepath)
+                
             self.closeConnection = headers.get('connection', 'close').lower() == 'close'
             self.headers = Headers([('Date', formatdate(usegmt=True)),
                                     ('Server', HTTP_SERVER_SOFTWARE),
@@ -173,7 +177,8 @@ class FileSystemWorker(Worker):
             header_data = HEADER_RESPONSE % (self.status, str(h))
 
             # Send the headers
-            self.err_log.debug('Sending Headers: %s' % repr(header_data))
+            if __debug__:
+                self.err_log.debug('Sending Headers: %s' % repr(header_data))
             self.conn.sendall(b(header_data))
 
             for data in self.data:
@@ -183,5 +188,6 @@ class FileSystemWorker(Worker):
                 self.data.close()
 
         finally:
-            self.err_log.debug('Finally closing sock_file')
+            if __debug__:
+                self.err_log.debug('Finally closing sock_file')
             sock_file.close()

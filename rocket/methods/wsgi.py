@@ -121,8 +121,9 @@ class WSGIWorker(Worker):
                         # If they sent us more than one section, we blow chunks
                         h_set['Transfer-Encoding'] = 'Chunked'
                         self.chunked = True
-                        self.err_log.debug('Adding header...Transfer-Encoding: '
-                                           'Chunked')
+                        if __debug__:
+                            self.err_log.debug('Adding header...'
+                                               'Transfer-Encoding: Chunked')
 
         if 'connection' not in h_set:
             # If the application did not provide a connection header, fill it in
@@ -144,7 +145,8 @@ class WSGIWorker(Worker):
         header_data = HEADER_RESPONSE % (self.status, str(h_set))
 
         # Send the headers
-        self.err_log.debug('Sending Headers: %s' % repr(header_data))
+        if __debug__:
+            self.err_log.debug('Sending Headers: %s' % repr(header_data))
         self.conn.sendall(b(header_data))
         self.headers_sent = True
 
@@ -214,7 +216,9 @@ class WSGIWorker(Worker):
         sections = None
         output = None
 
-        self.err_log.debug('Getting sock_file')
+        if __debug__:
+            self.err_log.debug('Getting sock_file')
+            
         # Build our file-like object
         sock_file = conn.makefile('rb',BUF_SIZE)
 
@@ -252,7 +256,9 @@ class WSGIWorker(Worker):
         # Don't capture exceptions here.  The Worker class handles
         # them appropriately.
         finally:
-            self.err_log.debug('Finally closing output and sock_file')
+            if __debug__:
+                self.err_log.debug('Finally closing output and sock_file')
+
             if hasattr(output,'close'):
                 output.close()
 

@@ -29,6 +29,15 @@ The second is a simple CherryPy adapter to make Rocket work as a drop-in replace
     
 See the `API Reference`_ below for more details on all available options.  Also the source distribution contains an examples directory with a ready-to-run example of each method type.
 
+Debugging
+---------
+
+Rocket makes use of Python's `built-in optimization`_.  Turning on optimization will skip evaluation of debug messages and speed things up a little.  This doesn't happen automatically, you'll need to turn it on specifically either by `environment variable`_ or `command-line option`_.
+
+.. _command-line option: http://docs.python.org/using/cmdline.html#cmdoption-O
+.. _environment variable: http://docs.python.org/using/cmdline.html#envvar-PYTHONOPTIMIZE
+.. _built-in optimization: http://docs.python.org/using/cmdline.html#cmdoption-O
+
 Logging
 =======
 

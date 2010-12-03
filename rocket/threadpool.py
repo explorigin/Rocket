@@ -25,7 +25,9 @@ class ThreadPool:
                  max_threads=DEFAULTS['MAX_THREADS'],
                  ):
 
-        log.debug("Initializing ThreadPool.")
+        if __debug__:
+            log.debug("Initializing ThreadPool.")
+
         self.check_for_dead_threads = 0
         self.active_queue = active_queue
 
@@ -51,14 +53,18 @@ class ThreadPool:
 
     def start(self):
         self.stop_server = False
-        log.debug("Starting threads.")
+        if __debug__:
+            log.debug("Starting threads.")
+            
         for thread in self.threads:
             thread.setDaemon(True)
             thread._pool = self
             thread.start()
 
     def stop(self):
-        log.debug("Stopping threads.")
+        if __debug__:
+            log.debug("Stopping threads.")
+            
         self.stop_server = True
 
         # Prompt the threads to die
@@ -81,7 +87,8 @@ class ThreadPool:
 
         dead_threads = [t for t in self.threads if not t.isAlive()]
         for t in dead_threads:
-            log.debug("Removing dead thread: %s." % t.getName())
+            if __debug__:
+                log.debug("Removing dead thread: %s." % t.getName())
             try:
                 # Py2.4 complains here so we put it in a try block
                 self.threads.remove(t)
@@ -97,8 +104,9 @@ class ThreadPool:
             amount = self.max_threads
 
         amount = min([amount, self.max_threads - len(self.threads)])
-
-        log.debug("Growing by %i." % amount)
+        
+        if __debug__:
+            log.debug("Growing by %i." % amount)
 
         for x in range(amount):
             new_worker = self.worker_class()
@@ -106,7 +114,8 @@ class ThreadPool:
             new_worker.start()
 
     def shrink(self, amount=1):
-        log.debug("Shrinking by %i." % amount)
+        if __debug__:
+            log.debug("Shrinking by %i." % amount)
 
         self.check_for_dead_threads += amount
 
@@ -121,8 +130,9 @@ class ThreadPool:
             queueSize = self.active_queue.qsize()
             threadCount = len(self.threads)
 
-            log.debug("Examining ThreadPool. %i threads and %i Q'd conxions"
-                      % (threadCount, queueSize))
+            if __debug__:
+                log.debug("Examining ThreadPool. %i threads and %i Q'd conxions"
+                          % (threadCount, queueSize))
 
             if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()

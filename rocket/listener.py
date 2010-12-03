@@ -122,7 +122,8 @@ class Listener(Thread):
             self.err_log.warning('Listener started when not ready.')
             return
 
-        self.err_log.debug('Entering main loop.')
+        if __debug__:
+            self.err_log.debug('Entering main loop.')
         while True:
             try:
                 sock = self.listener.accept()
@@ -136,7 +137,8 @@ class Listener(Thread):
                 # seconds.  When that happens, we check if it's time to die.
 
                 if not self.ready:
-                    self.err_log.info('Listener exiting.')
+                    if __debug__:
+                        self.err_log.debug('Listener exiting.')
                     return
                 else:
                     continue

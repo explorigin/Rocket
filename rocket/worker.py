@@ -81,23 +81,27 @@ class Worker(Thread):
             if 'timed out' in val.args[0]:
                 typ = SocketTimeout
         if typ == SocketTimeout:
-            self.err_log.debug('Socket timed out')
+            if __debug__:
+                self.err_log.debug('Socket timed out')
             self.monitor_queue.put(self.conn)
             return True
         if typ == SocketClosed:
             self.closeConnection = True
-            self.err_log.debug('Client closed socket')
+            if __debug__:
+                self.err_log.debug('Client closed socket')
             return False
         if typ == BadRequest:
             self.closeConnection = True
-            self.err_log.debug('Client sent a bad request')
+            if __debug__:
+                self.err_log.debug('Client sent a bad request')
             return True
         if typ == socket.error:
             self.closeConnection = True
             if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
                 self.closeConnection = True
-                self.err_log.debug('Ignorable socket Error received...'
-                                   'closing connection.')
+                if __debug__:
+                    self.err_log.debug('Ignorable socket Error received...'
+                                       'closing connection.')
                 return False
             else:
                 self.status = "999 Utter Server Failure"
@@ -112,7 +116,8 @@ class Worker(Thread):
         return False
 
     def run(self):
-        self.err_log.debug('Entering main loop.')
+        if __debug__:
+            self.err_log.debug('Entering main loop.')
 
         # Enter thread main loop
         while True:
@@ -120,7 +125,8 @@ class Worker(Thread):
 
             if not conn:
                 # A non-client is a signal to die
-                self.err_log.debug('Received a death threat.')
+                if __debug__:
+                    self.err_log.debug('Received a death threat.')
                 return
 
             # TODO: Move this to listener.py, does it affect speed at all?
@@ -136,12 +142,14 @@ class Worker(Thread):
                 conn.close()
                 continue
             else:
-                self.err_log.debug('Received a connection.')
+                if __debug__:
+                    self.err_log.debug('Received a connection.')
                 self.closeConnection = False
 
             # Enter connection serve loop
             while True:
-                self.err_log.debug('Serving a request')
+                if __debug__:
+                    self.err_log.debug('Serving a request')
                 try:
                     self.run_app(conn)
                     log_info = dict(client_ip = conn.client_addr,
@@ -209,7 +217,9 @@ class Worker(Thread):
 
             if d == '\r\n':
                 # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
-                self.err_log.debug('Client sent newline')
+                if __debug__:
+                    self.err_log.debug('Client sent newline')
+                    
                 d = sock_file.readline()
                 if PY3K:
                     d = d.decode('ISO-8859-1')
@@ -217,7 +227,8 @@ class Worker(Thread):
             raise SocketTimeout("Socket timed out before request.")
 
         if d.strip() == '':
-            self.err_log.debug('Client did not send a recognizable request.')
+            if __debug__:
+                self.err_log.debug('Client did not send a recognizable request.')
             raise SocketClosed('Client closed socket.')
 
         try:

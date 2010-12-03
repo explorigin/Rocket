@@ -40,19 +40,23 @@ class Monitor(Thread):
 
         self.active = True
 
-        self.log.debug('Entering monitor loop.')
+        if __debug__:
+            self.log.debug('Entering monitor loop.')
 
         # Enter thread main loop
         while self.active:
             # Move the queued connections to the selection pool
             while not self.monitor_queue.empty() or not len(self.connections):
-                self.log.debug('In "receive timed-out connections" loop.')
+                if __debug__:
+                    self.log.debug('In "receive timed-out connections" loop.')
 
                 c = self.monitor_queue.get()
 
                 if None == c:
                     # A non-client is a signal to die
-                    self.log.debug('Received a death threat.')
+                    if __debug__:
+                        self.log.debug('Received a death threat.')
+                        
                     return
 
                 self.log.debug('Received a timed out connection.')
@@ -64,7 +68,9 @@ class Monitor(Thread):
                     # order to select on it.
                     c.setblocking(False)
 
-                self.log.debug('Adding connection to monitor list.')
+                if __debug__:
+                    self.log.debug('Adding connection to monitor list.')
+                    
                 self.connections.add(c)
 
             # Wait on those connections
@@ -74,7 +80,8 @@ class Monitor(Thread):
 
             # If we have any readable connections, put them back
             for r in readable:
-                self.log.debug('Restoring readable connection')
+                if __debug__:
+                    self.log.debug('Restoring readable connection')
 
                 if IS_JYTHON:
                     # Jython requires a socket to be in Non-blocking mode in
@@ -95,9 +102,11 @@ class Monitor(Thread):
                         stale.add(c)
 
                 for c in stale:
-                    # "EXPR and A or B" kept for Py2.4 compatibility
-                    data = (c.client_addr, c.server_port, c.ssl and '*' or '')
-                    self.log.debug('Flushing stale connection: %s:%i%s' % data)
+                    if __debug__:
+                        # "EXPR and A or B" kept for Py2.4 compatibility
+                        data = (c.client_addr, c.server_port, c.ssl and '*' or '')
+                        self.log.debug('Flushing stale connection: %s:%i%s' % data)
+                        
                     self.connections.remove(c)
                     try:
                         c.close()
@@ -107,14 +116,18 @@ class Monitor(Thread):
     def stop(self):
         self.active = False
 
-        self.log.debug('Flushing waiting connections')
+        if __debug__:
+            self.log.debug('Flushing waiting connections')
+            
         for c in self.connections:
             try:
                 c.close()
             finally:
                 del c
 
-        self.log.debug('Flushing queued connections')
+        if __debug__:
+            self.log.debug('Flushing queued connections')
+            
         while not self.monitor_queue.empty():
             c = self.monitor_queue.get()
             
