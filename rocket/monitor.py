@@ -52,7 +52,7 @@ class Monitor(Thread):
 
                 c = self.monitor_queue.get()
 
-                if None == c:
+                if c is None:
                     # A non-client is a signal to die
                     if __debug__:
                         self.log.debug('Received a death threat.')
@@ -131,7 +131,7 @@ class Monitor(Thread):
         while not self.monitor_queue.empty():
             c = self.monitor_queue.get()
             
-            if None == c:
+            if c is None:
                 continue
 
             try:

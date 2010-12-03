@@ -53,19 +53,16 @@ class Listener(Thread):
         if self.secure:
             if not has_ssl:
                 self.err_log.error("ssl module required to serve HTTPS.")
-                del listener
                 return
             elif not os.path.exists(interface[2]):
                 data = (interface[2], interface[0], interface[1])
                 self.err_log.error("Cannot find key file "
                           "'%s'.  Cannot bind to %s:%s" % data)
-                del listener
                 return
             elif not os.path.exists(interface[3]):
                 data = (interface[3], interface[0], interface[1])
                 self.err_log.error("Cannot find certificate file "
                           "'%s'.  Cannot bind to %s:%s" % data)
-                del listener
                 return
 
         # Set socket options
@@ -105,10 +102,10 @@ class Listener(Thread):
         sock, client = sock_pair
         try:
             sock = ssl.wrap_socket(sock,
-                                   keyfile=self.interface[2],
-                                   certfile=self.interface[3],
-                                   server_side=True,
-                                   ssl_version=ssl.PROTOCOL_SSLv23)
+                                   keyfile = self.interface[2],
+                                   certfile = self.interface[3],
+                                   server_side = True,
+                                   ssl_version = ssl.PROTOCOL_SSLv23)
         except SSLError:
             # Generally this happens when an HTTP request is received on a
             # secure socket. We don't do anything because it will be detected

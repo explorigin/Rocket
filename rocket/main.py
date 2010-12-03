@@ -47,10 +47,10 @@ class Rocket:
         else:
             self.interfaces = interfaces
 
-        if None == min_threads:
+        if min_threads is None:
             min_threads = DEFAULTS['MIN_THREADS']
 
-        if None == max_threads:
+        if max_threads is None:
             max_threads = DEFAULTS['MAX_THREADS']
 
         if not queue_size:
@@ -168,12 +168,12 @@ class Rocket:
 
 def CherryPyWSGIServer(bind_addr,
                        wsgi_app,
-                       numthreads=10,
-                       server_name=None,
-                       max=-1,
-                       request_queue_size=5,
-                       timeout=10,
-                       shutdown_timeout=5):
+                       numthreads = 10,
+                       server_name = None,
+                       max = -1,
+                       request_queue_size = 5,
+                       timeout = 10,
+                       shutdown_timeout = 5):
     """ A Cherrypy wsgiserver-compatible wrapper. """
     max_threads = max
     if max_threads < 0:
