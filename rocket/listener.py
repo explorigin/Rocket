@@ -5,7 +5,6 @@
 
 # Import System Modules
 import os
-import sys
 import socket
 import logging
 import traceback
