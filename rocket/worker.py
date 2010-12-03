@@ -63,6 +63,10 @@ class Worker(Thread):
         self.app_info = app_info
         self.active_queue = active_queue
         self.monitor_queue = monitor_queue
+        
+        self.size = 0
+        self.status = "200 OK"
+        self.closeConnection = True
 
         # Request Log
         self.req_log = logging.getLogger('Rocket.Requests')
@@ -97,9 +101,9 @@ class Worker(Thread):
                 return False
             else:
                 self.status = "999 Utter Server Failure"
-                tb = traceback.format_exception((typ, val, tb))
+                tb_fmt = traceback.format_exception((typ, val, tb))
                 self.err_log.error('Unhandled Error when serving '
-                                   'connection:\n' + tb)
+                                   'connection:\n' + tb_fmt)
                 return False
 
         self.closeConnection = True
@@ -119,6 +123,7 @@ class Worker(Thread):
                 self.err_log.debug('Received a death threat.')
                 return
 
+            # TODO: Move this to listener.py, does it affect speed at all?
             if isinstance(conn, tuple):
                 conn = Connection(*conn)
 

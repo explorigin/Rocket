@@ -134,7 +134,7 @@ class Rocket:
                 time.sleep(THREAD_STOP_CHECK_INTERVAL)
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
-                break;
+                break
             except:
                 if not tp.stop_server:
                     log.error(str(traceback.format_exc()))

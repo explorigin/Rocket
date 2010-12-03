@@ -142,18 +142,3 @@ class Listener(Thread):
                     continue
             except:
                 self.err_log.error(str(traceback.format_exc()))
-
-    def run_app(self, conn):
-        # Must be overridden with a method reads the request from the socket
-        # and sends a response.
-        self.closeConnection = True
-        raise NotImplementedError('Overload this method!')
-
-    def kill(self):
-        if self.isAlive() and hasattr(self, 'conn'):
-            try:
-                self.conn.shutdown(socket.SHUT_RDWR)
-            except socket.error:
-                info = sys.exc_info()
-                if info[1].args[0] != socket.EBADF:
-                    self.err_log.debug('Error on shutdown: '+str(info))
