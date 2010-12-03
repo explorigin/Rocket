@@ -27,7 +27,7 @@ class RocketInitTest(unittest.TestCase):
         members = ["close", "client_addr", "server_port", "ssl", "socket", "start_time"]
         for m in members:
             self.assert_(hasattr(c, m),
-                         msg="Connection object does not have {0}".format(m))
+                         msg="Connection object does not have %s " % m)
 
 if __name__ == '__main__':
     unittest.main()

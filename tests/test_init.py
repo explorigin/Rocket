@@ -20,25 +20,15 @@ class RocketInitTest(unittest.TestCase):
         members = ["VERSION", "SERVER_NAME", "SERVER_SOFTWARE", "HTTP_SERVER_SOFTWARE", "BUF_SIZE", "IS_JYTHON", "IGNORE_ERRORS_ON_CLOSE", "DEFAULT_LISTEN_QUEUE_SIZE", "DEFAULT_MIN_THREADS", "DEFAULT_MAX_THREADS", "DEFAULTS", "PY3K", "u", "b", "Rocket", "CherryPyWSGIServer"]
         for m in members:
             self.assert_(hasattr(rocket, m),
-                         msg="rocket module does not have {0}".format(m))
+                         msg="rocket module does not have %s" % m)
 
-    if PY3K:
-        def testUnicode(self):
-            self.assertEquals(rocket.u('abc'), 'abc')
-            self.assertEquals(type(rocket.u('abc')), type('abc'))
+    def testUnicode(self):
+        self.assertEquals(rocket.u('abc'), eval("u'abc'"))
+        self.assertEquals(type(rocket.u('abc')), type(eval("u'abc'")))
 
-        def testBytes(self):
-            self.assertEquals(rocket.b('abc'), b'abc')
-            self.assertEquals(type(rocket.b('abc')), type(b'abc'))
-
-    else:
-        def testUnicode(self):
-            self.assertEquals(rocket.u('abc'), eval("u'abc'"))
-            self.assertEquals(type(rocket.u('abc')), type(eval("u'abc'")))
-
-        def testBytes(self):
-            self.assertEquals(rocket.b('abc'), 'abc')
-            self.assertEquals(type(rocket.b('abc')), type('abc'))
+    def testBytes(self):
+        self.assertEquals(rocket.b('abc'), 'abc')
+        self.assertEquals(type(rocket.b('abc')), type('abc'))
 
 
 if __name__ == '__main__':

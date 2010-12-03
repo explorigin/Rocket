@@ -187,10 +187,11 @@ class Worker(Thread):
         raise NotImplementedError('Overload this method!')
 
     def send_response(self, status):
+        stat_msg = status.split(' ', 1)[1]
         msg = RESPONSE % (status,
-                          len(status),
+                          len(stat_msg),
                           'text/plain',
-                          status.split(' ', 1)[1])
+                          stat_msg)
         try:
             self.conn.sendall(b(msg))
         except socket.error:

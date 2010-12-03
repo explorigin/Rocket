@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 # This file is part of the Rocket Web Server
 # Copyright (c) 2010 Timothy Farrell
 #
@@ -28,7 +26,11 @@ from glob import glob
 SLOW_TESTS = []
 IS_JYTHON = platform.system() == 'Java'
 logging.basicConfig(level=logging.CRITICAL)
+PY3K = sys.version_info[0] > 2
 
+def prnt(*args, **kwargs):
+    sys.stdout.write(' '.join(args));
+    
 # Define Classes
 class PrettyResults(unittest.TestResult):
     def __init__(self):
@@ -38,11 +40,11 @@ class PrettyResults(unittest.TestResult):
     def startTest(self, test):
         self.testsRun += 1
         if self.currentTest != test.__module__:
-            print('\nRunning test: {0}'.format(test.__module__.split('.')[-1]))
+            print('\nRunning test: %s' % test.__module__.split('.')[-1])
             self.currentTest = test.__module__
 
     def addSuccess(self, test):
-        print('.', end='')
+        sys.stdout.write('.')
 
     def addFailure(self, test, err):
         err_rpt = ''.join(traceback.format_exception(*err))
@@ -60,11 +62,11 @@ if __name__ == '__main__':
     args = sys.argv
 
     if len(args) > 1 and (args[1] == '-h' or args[1] == '--help'):
-        usagemsg = ['Usage: {0} (-h|--help) (-s|-slow)',
+        usagemsg = ['Usage: %s (-h|--help) (-s|-slow)',
                     '',
                     '\t-h, --help\t display this text',
                     '\t-s, --slow\t Run slow tests']
-        print('\n'.join(usagemsg).format(os.path.basename(args[0])))
+        print('\n'.join(usagemsg) % (os.path.basename(args[0])))
         sys.exit();
 
     loader = unittest.TestLoader()
@@ -87,23 +89,24 @@ if __name__ == '__main__':
                 testMod = __import__('tests.' + x, fromlist=['tests'])
                 sweet.addTests(loader.loadTestsFromModule(testMod))
                 modTotal += 1
-            except ImportError as e:
+            except ImportError:
                 impfail += 1
-                print('Error loading module: {0}\nMessage: {1}'.format(x, e))
+                tb_fmt = traceback.format_exception(sys.exc_info())
+                print('Error loading module: %s\nMessage: %s' % (x, tb_fmt))
             except:
                 impfail += 1
                 print('Error loading module: ' + x)
                 print(traceback.format_exc(sys.exc_info))
 
-    print('Running {0} tests in {1} modules...'.format(sweet.countTestCases(),
+    print('Running %s tests in %i modules...' % (sweet.countTestCases(),
                                                        modTotal))
 
     sweet.run(result)
 
     fails = len(result.failures)
     errors = len(result.errors)
-    msg = '\nSuccesses: {0}, Errors: {1}, Failures: {2}, Failed Imports: {3}'
-    print(msg.format(result.testsRun - fails - errors, errors, fails, impfail))
+    msg = '\nSuccesses: %i, Errors: %i, Failures: %i, Failed Imports: %i'
+    print(msg % (result.testsRun - fails - errors, errors, fails, impfail))
 
     for f in (glob('*'+os.path.sep+'*.pyc') + glob('*.pyc')):
         os.unlink(f)
