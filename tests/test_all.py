@@ -30,7 +30,7 @@ PY3K = sys.version_info[0] > 2
 
 def prnt(*args, **kwargs):
     sys.stdout.write(' '.join(args));
-    
+
 # Define Classes
 class PrettyResults(unittest.TestResult):
     def __init__(self):
@@ -80,6 +80,11 @@ if __name__ == '__main__':
 
     print('Importing test modules...')
 
+    try:
+        sys.path.append(os.getcwd())
+    except:
+        print("Cannot add working directory to Python Path.")
+
     mods = glob(os.path.join('tests','test_')+'*.py')
     modTotal = 0
     impfail = 0
@@ -91,7 +96,7 @@ if __name__ == '__main__':
                 modTotal += 1
             except ImportError:
                 impfail += 1
-                tb_fmt = traceback.format_exception(sys.exc_info())
+                tb_fmt = traceback.format_exception(*sys.exc_info())
                 print('Error loading module: %s\nMessage: %s' % (x, tb_fmt))
             except:
                 impfail += 1
