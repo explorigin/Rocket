@@ -10,15 +10,12 @@ import sys
 import socket
 import unittest
 # Import Custom Modules
-from rocket import connection
-
-# Define Constants
-PY3K = sys.version_info[0] > 2
+from rocket import connection, SOCKET_TIMEOUT
 
 # Define Tests
 class RocketInitTest(unittest.TestCase):
     def setUp(self):
-        self.starttuple = (socket.socket(), ('127.0.0.1', 90453))
+        self.starttuple = (socket.socket(), ('127.0.0.1', 30453))
         self.serverport = 81
 
     def testMembers(self):
@@ -28,6 +25,12 @@ class RocketInitTest(unittest.TestCase):
         for m in members:
             self.assert_(hasattr(c, m),
                          msg="Connection object does not have %s " % m)
+
+    def testSocketTimeout(self):
+        c = connection.Connection(self.starttuple, self.serverport)
+
+        timeout = c.gettimeout()
+        self.assertEqual(timeout, SOCKET_TIMEOUT)
 
 if __name__ == '__main__':
     unittest.main()

@@ -24,13 +24,14 @@ class Connection:
         self.secure = secure
 
         if IS_JYTHON:
-            # In Jython we must set TCP_NODELAY here.
+            # In Jython we must set TCP_NODELAY here since it does not
+            # inherit from the listening socket.
             # See: http://bugs.jython.org/issue1309
             self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-        if hasattr(self.socket, 'settimeout'):
-            self.socket.settimeout(SOCKET_TIMEOUT)
+        self.socket.settimeout(SOCKET_TIMEOUT)
 
+        # FIXME - This is slow and unnecessary.
         for x in dir(self.socket):
             if not hasattr(self, x):
                 try:
