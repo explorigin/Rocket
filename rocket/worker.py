@@ -63,7 +63,7 @@ class Worker(Thread):
         self.app_info = app_info
         self.active_queue = active_queue
         self.monitor_queue = monitor_queue
-        
+
         self.size = 0
         self.status = "200 OK"
         self.closeConnection = True
@@ -220,7 +220,7 @@ class Worker(Thread):
                 # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
                 if __debug__:
                     self.err_log.debug('Client sent newline')
-                    
+
                 d = sock_file.readline()
                 if PY3K:
                     d = d.decode('ISO-8859-1')
@@ -285,11 +285,14 @@ class Worker(Thread):
 
             if l[0] in ' \t' and lname:
                 # Some headers take more than one line
-                lval += ', ' + l.strip()
+                lval += ',' + l.strip()
             else:
                 # HTTP header values are latin-1 encoded
                 l = l.split(':', 1)
                 # HTTP header names are us-ascii encoded
+
+                # FIXME - This should be a generic function and not underscore
+                # header names.
                 lname = l[0].strip().replace('-', '_')
                 lval = l[-1].strip()
             headers[str(lname)] = str(lval)
