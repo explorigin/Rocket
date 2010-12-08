@@ -251,6 +251,7 @@ class Worker(Thread):
         elif '://' in uri:
             scheme, rest = uri.split('://')
             host, path = rest.split('/', 1)
+            path = '/' + path
         else:
             self.send_response('400 Bad Request')
             raise BadRequest

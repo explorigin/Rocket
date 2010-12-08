@@ -47,16 +47,48 @@ HEADER_DICT = {
     'keep_alive': '115',
     'connection': 'keep-alive',
     'referer': 'http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15'}
-SENDALL_HEADER_TEMPLATE = '''HTTP/1.1 200 OK\nContent-Length: 2
-Content-Type: text/plain\n\nOK\n'''
-
+SENDALL_VALUES = [
+    '''HTTP/1.1 200 OK\nContent-Length: 2\nContent-Type: text/plain\n\nOK\n''',
+    '''HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n''',
+]
+REQUEST_DICT = {
+    'GET /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1': \
+        dict(path='/dir1/dir2/file1.html',
+            query_string='a=1&b=2',
+            scheme='',
+            host='',
+            method='GET',
+            protocol='HTTP/1.1'
+        ),
+    'POST https://example.com/file1.html HTTP/1.0': \
+        dict(path='/file1.html',
+            query_string='',
+            scheme='https',
+            host='example.com',
+            method='POST',
+            protocol='HTTP/1.0'
+        ),
+    'OPTIONS * HTTP/1.0': \
+        dict(path='*',
+            query_string='',
+            scheme='',
+            host='',
+            method='OPTIONS',
+            protocol='HTTP/1.0'
+        ),
+}
+BAD_REQUESTS = [
+    'GET /dir1/dir2/file1.html?a=1&b=2 SPDY/1.1',
+    'GET /dir1/dir2/file1.html?a=1&b=2HTTP/1.1',
+    'GET/dir1/dir2/file1.html?a=1&b=2 HTTP/1.1',
+]
 
 class FakeConn:
     def sendall(self, data):
         if data.lower().strip().endswith("error"):
             raise socket.error
         else:
-            assert data == SENDALL_HEADER_TEMPLATE
+            assert data in SENDALL_VALUES
 
 # Define Tests
 class RocketInitTest(unittest.TestCase):
@@ -106,6 +138,19 @@ class RocketInitTest(unittest.TestCase):
         for header_name in HEADER_DICT.keys():
             self.assertEqual(headers[header_name], HEADER_DICT[header_name])
 
+    def testReadRequestLine(self):
+        for reqline, resdict in REQUEST_DICT.items():
+            result = self.worker.read_request_line(StringIO(reqline + '\r\n'))
+            for key in result:
+                self.assertEqual(result[key], resdict[key])
+        
+    def testReadRequestLineErrors(self):
+        self.worker.conn = FakeConn()
+        for reqline in BAD_REQUESTS:
+            self.assertRaises(worker.BadRequest, 
+                              self.worker.read_request_line,
+                              StringIO(reqline + '\r\n'))
+    
     def tearDown(self):
         del self.worker
 
