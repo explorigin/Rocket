@@ -13,7 +13,7 @@ import unittest
 from rocket import connection, SOCKET_TIMEOUT
 
 # Define Tests
-class RocketInitTest(unittest.TestCase):
+class ConnectionTest(unittest.TestCase):
     def setUp(self):
         self.starttuple = (socket.socket(), ('127.0.0.1', 30453))
         self.serverport = 81

@@ -91,7 +91,7 @@ class FakeConn:
             assert data in SENDALL_VALUES
 
 # Define Tests
-class RocketInitTest(unittest.TestCase):
+class WorkerTest(unittest.TestCase):
     def setUp(self):
         self.worker = worker.Worker(dict(), Queue(), Queue())
         self.worker
@@ -143,14 +143,14 @@ class RocketInitTest(unittest.TestCase):
             result = self.worker.read_request_line(StringIO(reqline + '\r\n'))
             for key in result:
                 self.assertEqual(result[key], resdict[key])
-        
+
     def testReadRequestLineErrors(self):
         self.worker.conn = FakeConn()
         for reqline in BAD_REQUESTS:
-            self.assertRaises(worker.BadRequest, 
+            self.assertRaises(worker.BadRequest,
                               self.worker.read_request_line,
                               StringIO(reqline + '\r\n'))
-    
+
     def tearDown(self):
         del self.worker
 
