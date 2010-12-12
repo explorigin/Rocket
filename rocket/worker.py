@@ -98,20 +98,20 @@ class Worker(Thread):
         if typ == socket.error:
             self.closeConnection = True
             if val.args[0] in IGNORE_ERRORS_ON_CLOSE:
-                self.closeConnection = True
                 if __debug__:
                     self.err_log.debug('Ignorable socket Error received...'
                                        'closing connection.')
                 return False
             else:
                 self.status = "999 Utter Server Failure"
-                tb_fmt = traceback.format_exception((typ, val, tb))
+                tb_fmt = traceback.format_exception(typ, val, tb)
                 self.err_log.error('Unhandled Error when serving '
-                                   'connection:\n' + tb_fmt)
+                                   'connection:\n' + '\n'.join(tb_fmt))
                 return False
 
         self.closeConnection = True
-        self.err_log.error(str(traceback.format_exc()))
+        tb_fmt = traceback.format_exception(typ, val, tb)
+        self.err_log.error('\n'.join(tb_fmt))
         self.send_response('500 Server Error')
         return False
 

@@ -6,6 +6,8 @@
 # See the included LICENSE.txt file for licensing details.
 
 # Import System Modules
+import sys
+import errno
 import socket
 import unittest
 try:
@@ -84,17 +86,27 @@ BAD_REQUESTS = [
 ]
 
 class FakeConn:
+    def __init__(self):
+        self.closeConnection = True
+        self.sentData = None
+
     def sendall(self, data):
+        self.sendData = data
         if data.lower().strip().endswith("error"):
             raise socket.error
         else:
             assert data in SENDALL_VALUES
 
+class FakeVars:
+    def __init__(self):
+        self.args = list()
+
 # Define Tests
 class WorkerTest(unittest.TestCase):
     def setUp(self):
-        self.worker = worker.Worker(dict(), Queue(), Queue())
-        self.worker
+        self.active_queue = Queue()
+        self.monitor_queue = Queue()
+        self.worker = worker.Worker(dict(), self.active_queue, self.monitor_queue)
         self.starttuple = (socket.socket(), ('127.0.0.1', 90453))
         self.serverport = 81
 
@@ -150,6 +162,95 @@ class WorkerTest(unittest.TestCase):
             self.assertRaises(worker.BadRequest,
                               self.worker.read_request_line,
                               StringIO(reqline + '\r\n'))
+
+    def testHandleError_SSLTimeout(self):
+        m = self.worker._handleError
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test SSL Socket Timeout
+        vars = FakeVars()
+        vars.args.append("timed out")
+        self.assert_(m(worker.SSLError, vars, None))
+        self.assertEqual(self.worker.closeConnection, False)
+
+        conn = self.monitor_queue.get()
+        self.assert_(conn is self.worker.conn)
+
+    def testHandleError_SocketTimeout(self):
+        m = self.worker._handleError
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test Socket Timeout
+        self.assert_(m(worker.SocketTimeout, None, None))
+        self.assertEqual(self.worker.closeConnection, False)
+
+        conn = self.monitor_queue.get()
+        self.assert_(conn is self.worker.conn)
+
+    def testHandleError_BadRequest(self):
+        m = self.worker._handleError
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test Bad Request
+        self.assert_(m(worker.BadRequest, None, None))
+        self.assertEqual(self.worker.closeConnection, True)
+
+    def testHandleError_SocketClosed(self):
+        m = self.worker._handleError
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test Socket Closed
+        self.assert_(not m(worker.SocketClosed, None, None))
+        self.assertEqual(self.worker.closeConnection, True)
+
+    def testHandleError_SocketError(self):
+        m = self.worker._handleError
+
+        vars = FakeVars()
+        vars.args.append(errno.ECONNABORTED)
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test SocketError
+        self.assert_(not m(socket.error, vars, None))
+        self.assertEqual(self.worker.closeConnection, True)
+        self.assertEqual(self.worker.status, "200 OK")
+
+    def testHandleError_SocketUnknownError(self):
+        m = self.worker._handleError
+
+        vars = FakeVars()
+        vars.args.append("a")
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test Socket Unknown Error
+        self.assertRaises(AttributeError, m, socket.error, vars, "traceback")
+        self.assertEqual(self.worker.closeConnection, True)
+        self.assertEqual(self.worker.status, "999 Utter Server Failure")
+
+    def testHandleError_UnknownError(self):
+        m = self.worker._handleError
+
+        vars = FakeVars()
+        vars.args.append("a")
+
+        self.worker.conn = FakeConn()
+        self.worker.closeConnection = False
+
+        # Test Unknown Error
+        self.assert_(not m(RuntimeError, vars, None))
+        self.assertEqual(self.worker.closeConnection, True)
 
     def tearDown(self):
         del self.worker
