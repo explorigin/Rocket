@@ -329,6 +329,9 @@ class ChunkedReader:
             if self.buffer_size:
                 self.buffer = StringIO(self.stream.read(self.buffer_size))
 
+            self.stream.read(2) # flush out the remaining \r\n
+
+
     def read(self, size):
         data = b('')
         while size:
@@ -343,7 +346,7 @@ class ChunkedReader:
     def readline(self):
         data = b('')
         c = self.read(1)
-        while c != b('\n') or c == b(''):
+        while c and c != b('\n'):
             data += c
             c = self.read(1)
         data += c
