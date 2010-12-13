@@ -89,6 +89,9 @@ class FakeConn:
     def __init__(self):
         self.closeConnection = True
         self.sentData = None
+        self.closed = False
+        self.ssl = False
+        self.secure = False
 
     def sendall(self, data):
         self.sendData = data
@@ -97,6 +100,9 @@ class FakeConn:
         else:
             assert data in SENDALL_VALUES
 
+    def close(self):
+        self.closed = True
+    
 class FakeVars:
     def __init__(self):
         self.args = list()
@@ -252,6 +258,31 @@ class WorkerTest(unittest.TestCase):
         self.assert_(not m(RuntimeError, vars, None))
         self.assertEqual(self.worker.closeConnection, True)
 
+    def testRunStopSentryValue(self):
+        self.active_queue.put(None)
+        
+        # NOTE: This test may infinite loop instead of fail.
+        self.assertEqual(None, self.worker.run())
+    
+    def testRun_HTTPConnectionOnHTTPSSocket(self):
+        conn = FakeConn()
+        conn.ssl = True # simulate that the module is available
+        conn.secure = False # simulate that the module is available
+
+        self.active_queue.put(conn)
+        self.active_queue.put(None)
+
+        self.worker.closeConnection = False
+        
+        # NOTE: This test may infinite loop instead of fail.
+        self.assertEqual(None, self.worker.run())
+        
+        # Test that it closed the connection
+        self.assert_(self.worker.closeConnection)
+        
+        # Test that it sent 400 bad request
+        self.assertEqual(conn.sendData, 'HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n')
+    
     def tearDown(self):
         del self.worker
 

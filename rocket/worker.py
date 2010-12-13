@@ -127,7 +127,7 @@ class Worker(Thread):
                 # A non-client is a signal to die
                 if __debug__:
                     self.err_log.debug('Received a death threat.')
-                return
+                return conn
 
             # TODO: Move this to listener.py, does it affect speed at all?
             if isinstance(conn, tuple):
