@@ -97,7 +97,7 @@ if __name__ == '__main__':
             except ImportError:
                 impfail += 1
                 tb_fmt = traceback.format_exception(*sys.exc_info())
-                print('Error loading module: %s\nMessage: %s' % (x, tb_fmt))
+                print('Error loading module: %s\nMessage: %s' % (x, '\n'.join(tb_fmt)))
             except:
                 impfail += 1
                 print('Error loading module: ' + x)

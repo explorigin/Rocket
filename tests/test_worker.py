@@ -113,8 +113,7 @@ class WorkerTest(unittest.TestCase):
         self.active_queue = Queue()
         self.monitor_queue = Queue()
         self.worker = worker.Worker(dict(), self.active_queue, self.monitor_queue)
-        self.starttuple = (socket.socket(), ('127.0.0.1', 90453))
-        self.serverport = 81
+        self.starttuple = (socket.socket(), ('127.0.0.1', 45451))
 
     def testRunApp(self):
         self.assert_(self.worker.closeConnection,
@@ -300,7 +299,6 @@ class WorkerTest(unittest.TestCase):
         
         self.assertEqual(conn.sendData, 'HTTP/1.1 500 Server Error\nContent-Length: 12\nContent-Type: text/plain\n\nServer Error\n')
     
-
     def tearDown(self):
         del self.worker
 
