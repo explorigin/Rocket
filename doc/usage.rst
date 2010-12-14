@@ -74,7 +74,9 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
     [('0.0.0.0', 80),
      ('0.0.0.0', 443, 'server_key.pem', 'server_cert.pem')]
 
- will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.  Note that if you are using Rocket on a version of Python less than 2.6, you will have to install the `ssl module <http://pypi.python.org/pypi/ssl>`_ manually since the HTTPS feature depends on it.  
+ will serve HTTP on port 80 to clients from any address and HTTPS on port 443 to clients from any address.  Note that if you are using Rocket on a version of Python less than 2.6, you will have to install the `ssl module <http://pypi.python.org/pypi/ssl>`_ manually since the HTTPS feature depends on it.
+ 
+ If you do not have a server key and certificate and just need a self-signed certificate, you can generate one with OpenSSL.  The Python documentation has more details on `how to do this <http://docs.python.org/dev/library/ssl.html#self-signed-certificates>`_.
 
  **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass an interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
 
