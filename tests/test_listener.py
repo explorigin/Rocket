@@ -21,7 +21,7 @@ except ImportError:
     from Queue import Queue
 
 # Import Custom Modules
-from rocket import listener, worker
+from rocket import listener
 
 # Constants
 
