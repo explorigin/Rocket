@@ -266,8 +266,8 @@ class WorkerTest(unittest.TestCase):
     
     def testRun_HTTPConnectionOnHTTPSSocket(self):
         conn = FakeConn()
-        conn.ssl = True # simulate that the module is available
-        conn.secure = False # simulate that the module is available
+        conn.ssl = True
+        conn.secure = False
 
         self.active_queue.put(conn)
         self.active_queue.put(None)
@@ -283,6 +283,24 @@ class WorkerTest(unittest.TestCase):
         # Test that it sent 400 bad request
         self.assertEqual(conn.sendData, 'HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n')
     
+    def testRun_HTTPConnection(self):
+        conn = FakeConn()
+
+        self.active_queue.put(conn)
+        self.active_queue.put(None)
+
+        self.worker.closeConnection = False
+        self.worker.request_line = ''
+        
+        # NOTE: This test may infinite loop instead of fail.
+        self.assertEqual(None, self.worker.run())
+        
+        # Test that it closed the connection
+        self.assert_(self.worker.closeConnection)
+        
+        self.assertEqual(conn.sendData, 'HTTP/1.1 500 Server Error\nContent-Length: 12\nContent-Type: text/plain\n\nServer Error\n')
+    
+
     def tearDown(self):
         del self.worker
 
