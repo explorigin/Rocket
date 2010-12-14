@@ -36,6 +36,8 @@ class ThreadPool:
         self.max_threads = max_threads
         self.monitor_queue = monitor_queue
         self.stop_server = False
+        
+        # TODO - Optimize this based on some real-world usage data
         self.grow_threshold = int(max_threads/10) + 2
 
         if not isinstance(app_info, dict):
@@ -43,6 +45,8 @@ class ThreadPool:
 
         app_info.update(max_threads=max_threads,
                         min_threads=min_threads)
+        
+        self.app_info = app_info
 
         self.threads = set()
         for x in range(min_threads):
@@ -103,15 +107,19 @@ class ThreadPool:
         if not amount:
             amount = self.max_threads
 
+        # FIXME - self.max_threads is checked against twice
         amount = min([amount, self.max_threads - len(self.threads)])
         
         if __debug__:
             log.debug("Growing by %i." % amount)
 
         for x in range(amount):
-            new_worker = self.worker_class()
-            self.threads.add(new_worker)
-            new_worker.start()
+            worker = self.worker_class(self.app_info,
+                                       self.active_queue,
+                                       self.monitor_queue)
+
+            self.threads.add(worker)
+            worker.start()
 
     def shrink(self, amount=1):
         if __debug__:
@@ -137,6 +145,7 @@ class ThreadPool:
             if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()
 
+            # FIXME - self.max_threads is checked against twice
             elif queueSize > self.grow_threshold \
                  and threadCount < self.max_threads:
 
