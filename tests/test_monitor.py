@@ -7,6 +7,7 @@
 
 # Import System Modules
 import time
+import types
 import socket
 import unittest
 import threading
@@ -28,6 +29,23 @@ class MonitorTest(unittest.TestCase):
         self.timeout = 1
         self.interface = ("127.0.0.1", 45451)
 
+    def _waitForEqual(self, a, b):
+        attempts = 80
+        while attempts > 0:
+            if isinstance(a, types.FunctionType):
+                _a = a()
+            else:
+                _a = a
+            if isinstance(b, types.FunctionType):
+                _b = b()
+            else:
+                _b = b
+            if _a == _b:
+                return True
+            time.sleep(0.25)
+            attempts -= 1
+        return False
+        
     def testNotActive(self):
         self.monitor = monitor.Monitor(self.monitor_queue,
                                        self.active_queue,
@@ -52,7 +70,7 @@ class MonitorTest(unittest.TestCase):
         sock.connect(self.interface)
 
         # Verify that listener put it in the active queue
-        time.sleep(0.5)
+        self._waitForEqual(self.active_queue.qsize, 1)
         self.assertEqual(self.active_queue.qsize(), 1)
         
         # Put it in the monitor queue
@@ -62,10 +80,7 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(self.monitor_queue.qsize(), 1)
         
         # Wait for the monitor queue to see it
-        attempts = 20
-        while attempts > 0 and self.monitor_queue.qsize():
-            time.sleep(0.5)
-            attempts -= 1
+        self._waitForEqual(self.monitor_queue.qsize, 0)
         self.assertEqual(self.monitor_queue.qsize(), 0)
         
         # Send something to the socket to see if it get put back on the active
@@ -73,7 +88,7 @@ class MonitorTest(unittest.TestCase):
         sock.send("test data")
         
         # Give monitor a chance to see it
-        time.sleep(0.5)
+        self._waitForEqual(self.active_queue.qsize, 1)
         
         # Finally check to make sure that it's on the active queue
         self.assertEqual(self.active_queue.qsize(), 1)
