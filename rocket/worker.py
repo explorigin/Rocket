@@ -322,7 +322,7 @@ class ChunkedReader:
     def _read_chunk(self):
         # FIXME: ChunkedReader should not buffer any data.  It should only
         # interpret the chunks and read when requested.
-        
+
         if not self.buffer or self.buffer.tell() == self.buffer_size:
             try:
                 self.buffer_size = int(self.stream.readline().strip(), 16)
