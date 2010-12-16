@@ -27,16 +27,17 @@ class MonitorTest(unittest.TestCase):
         self.active_queue = Queue()
         self.monitor_queue = Queue()
         self.timeout = 1
-        self.interface = ("127.0.0.1", 45451)
+        self.interface = ("127.0.0.1", 45453)
 
     def _waitForEqual(self, a, b):
-        attempts = 80
+        attempts = 20
         while attempts > 0:
-            if isinstance(a, types.FunctionType):
+            if isinstance(a, (types.FunctionType, types.MethodType)):
                 _a = a()
             else:
+                print type(a)
                 _a = a
-            if isinstance(b, types.FunctionType):
+            if isinstance(b, (types.FunctionType, types.MethodType)):
                 _b = b()
             else:
                 _b = b
@@ -45,7 +46,7 @@ class MonitorTest(unittest.TestCase):
             time.sleep(0.25)
             attempts -= 1
         return False
-        
+
     def testNotActive(self):
         self.monitor = monitor.Monitor(self.monitor_queue,
                                        self.active_queue,
@@ -55,15 +56,13 @@ class MonitorTest(unittest.TestCase):
 
     def testMonitor(self):
         self.testNotActive() # create self.monitor
-        
-        self.monitor.start()
-        
+
         # Start the listener
         self.listener = listener.Listener(self.interface,
                                           5,
                                           self.active_queue)
         self.listener.start()
-        
+
         # Create a socket connecting to listener's port
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)
@@ -72,29 +71,32 @@ class MonitorTest(unittest.TestCase):
         # Verify that listener put it in the active queue
         self._waitForEqual(self.active_queue.qsize, 1)
         self.assertEqual(self.active_queue.qsize(), 1)
-        
+
         # Put it in the monitor queue
         conn = self.active_queue.get()
         conn = connection.Connection(*conn)
         self.monitor_queue.put(conn)
+        self._waitForEqual(self.monitor_queue.qsize, 1)
         self.assertEqual(self.monitor_queue.qsize(), 1)
-        
+
+        self.monitor.start()
+
         # Wait for the monitor queue to see it
         self._waitForEqual(self.monitor_queue.qsize, 0)
         self.assertEqual(self.monitor_queue.qsize(), 0)
-        
+
         # Send something to the socket to see if it get put back on the active
         # queue.
         sock.send("test data")
-        
+
         # Give monitor a chance to see it
         self._waitForEqual(self.active_queue.qsize, 1)
-        
+
         # Finally check to make sure that it's on the active queue
         self.assertEqual(self.active_queue.qsize(), 1)
         conn2 = self.active_queue.get()
         self.assert_(conn is conn2)
-    
+
     def tearDown(self):
         try:
             self.listener.ready = False
@@ -102,7 +104,7 @@ class MonitorTest(unittest.TestCase):
             self.assert_(not self.listener.isAlive())
         except:
             pass
-    
+
         try:
             del self.listener
         except:
@@ -112,7 +114,7 @@ class MonitorTest(unittest.TestCase):
             self.monitor.stop()
         except:
             pass
-    
+
         try:
             del self.monitor
         except:
