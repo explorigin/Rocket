@@ -9,7 +9,9 @@
 http://www.python.org/dev/peps/pep-0333/#specification-details"""
 
 # Import System Modules
+import re
 import time
+import types
 import socket
 import unittest
 import threading
@@ -70,10 +72,10 @@ class FakeConn:
         self.sendData = data
         if data.lower().strip().endswith("error"):
             raise socket.error
-        else:
-            print data
-    #        assert data in SENDALL_VALUES
 
+    def makefile(mode="rb", buf_size=1024):
+        return StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()) + '\r\n\r\n')
+        
     def close(self):
         self.closed = True
 
@@ -89,8 +91,14 @@ class WSGIWorkerTest(unittest.TestCase):
         self.worker = wsgi.WSGIWorker(self.app_info,
                                       self.active_queue,
                                       self.monitor_queue)
+        self.worker.header_set = []
         self.serverport = 45454
         self.starttuple = (socket.socket(), ('127.0.0.1', self.serverport))
+        
+        self.fakeStartCalled = False
+
+    def fakeStart(self, a, b, c=None):
+        self.fakeStartCalled = True
 
     def testApplicationParameters(self):
         """The application object must accept two positional arguments. For the
@@ -113,23 +121,25 @@ class WSGIWorkerTest(unittest.TestCase):
         extension variables, named according to a convention that will be
         described below."""
         REQUIRED_VARS = [
-            'REQUEST_METHOD',
-            'SCRIPT_NAME',
-            'PATH_INFO',
-            'QUERY_STRING',
-            'CONTENT_TYPE',
-            'CONTENT_LENGTH',
-            'SERVER_NAME',
-            'SERVER_PORT',
-            'SERVER_PROTOCOL',
-            'wsgi.version',
-            'wsgi.url_scheme',
-            'wsgi.input',
-            'wsgi.errors',
-            'wsgi.multithread',
-            'wsgi.multiprocess',
-            'wsgi.run_once'
+            ('REQUEST_METHOD', True, 'GET|POST|PUT|DELETE|HEAD|TRACE|OPTIONS|CONNECT'),
+            ('SCRIPT_NAME', True, r'([A-Za-z][A-Za-z0-9\.\-]*)?'),
+            ('PATH_INFO', True, r'([A-Za-z][A-Za-z0-9\.\-]*)?'),
+            ('QUERY_STRING', False, r''),
+            ('CONTENT_TYPE', False, r'\w+/\w+'),
+            ('CONTENT_LENGTH', False, r'\d+'),
+            ('SERVER_NAME', True, r'\w+'),
+            ('SERVER_PORT', True, r'\d+'),
+            ('SERVER_PROTOCOL', True, r'HTTP/1\.[01]'),
+            ('wsgi.version', True, lambda x: x[0] == 1 and x[1] == 0),
+            ('wsgi.url_scheme', True, r'https?'),
+            ('wsgi.input', True, lambda x: hasattr(x, 'read')),
+            ('wsgi.errors', True, lambda x: hasattr(x, 'read')),
+            ('wsgi.multithread', True, lambda x: isinstance(x, bool)),
+            ('wsgi.multiprocess', True, lambda x: isinstance(x, bool)),
+            ('wsgi.run_once', True, lambda x: isinstance(x, bool)),
+            ('HTTP_HOST', False, r'([A-Za-z][A-Za-z0-9\.]*)?'),
         ]
+        # NOTE: We could also check other HTTP_ vars but they are browser dependent.
 
         conn = FakeConn()
 
@@ -138,10 +148,20 @@ class WSGIWorkerTest(unittest.TestCase):
         headersBuf = StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()) + '\r\n\r\n')
         env = self.worker.build_environ(headersBuf, conn)
 
-        for h in REQUIRED_VARS:
-            self.assert_(h in env,
-                         msg="Missing Environment variable: " + h)
-
+        for name, reqd, validator in REQUIRED_VARS:
+            if reqd:
+                self.assert_(name in env,
+                             msg="Missing Environment variable: " + name)
+            if name in env:
+                valid = validator
+                if isinstance(valid, str):
+                    valid = re.compile(valid)
+                if isinstance(valid, (types.FunctionType, types.MethodType)):
+                    self.assert_(valid(env[name]),
+                                 msg="%s=\"%s\" does not validate." % (name, env[name]))
+                else:
+                    self.assert_(valid.match(env[name]),
+                                 msg="%s=\"%s\" does not validate." % (name, env[name]))
 
     def testStartResponse(self):
         """The start_response parameter is a callable accepting two required
@@ -164,7 +184,18 @@ class WSGIWorkerTest(unittest.TestCase):
         support certain existing frameworks' imperative output APIs; it should
         not be used by new applications or frameworks if it can be avoided. See
         the Buffering and Streaming section for more details.)"""
-        raise NotImplementedError()
+        
+        conn = FakeConn()
+        sock_file = conn.makefile()
+        
+        self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
+        
+        out = self.worker.start_response("500 Server Error",
+                                         [('Content-Type', 'text/plain'),
+                                          ('Content-Length', '16')])
+                                          
+        self.assert_(callable(out),
+                     msg="WSGIWorker.start_response() did not return a callable.")
 
     def testApplicationReturnValueTests(self):
         """When called by the server, the application object must return an
@@ -174,7 +205,17 @@ class WSGIWorkerTest(unittest.TestCase):
         application being a class whose instances are iterable. Regardless of
         how it is accomplished, the application object must always return an
         iterable yielding zero or more strings."""
-        raise NotImplementedError()
+
+        conn = FakeConn()
+        sock_file = conn.makefile()
+        
+        self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
+        
+        output = self.worker.app(environ, self.worker.start_response)
+        
+        self.assert_(hasattr(output, "__iter__") or hasattr(output, "__next__"),
+                     msg="Value returned by WSGI app is not iterable")
+        
 
     def testOutputHandling(self):
         """The server or gateway should treat the yielded strings as binary
@@ -185,7 +226,21 @@ class WSGIWorkerTest(unittest.TestCase):
         transformations for the purpose of implementing HTTP features such as
         byte-range transmission. See Other HTTP Features, below, for more
         details.)"""
-        raise NotImplementedError()
+        self.worker.conn = conn = FakeConn()
+        sock_file = conn.makefile()
+        
+        self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
+        self.worker.error = (None, None)
+        self.worker.headers_sent = True
+        self.worker.chunked = False
+        
+        output = self.worker.app(environ, self.worker.start_response)
+        
+        for data in output:
+            if data:
+                self.worker.write(data, len(data))
+                
+        self.assertEqual(''.join(output), conn.sendData)
 
     def testReturnedValueLength(self):
         """If a call to len(iterable) succeeds, the server must be able to rely
@@ -193,7 +248,8 @@ class WSGIWorkerTest(unittest.TestCase):
         application provides a working __len__() method, it must return an
         accurate result. (See the Handling the Content-Length Header section
         for information on how this would normally be used.)"""
-        raise NotImplementedError()
+        # NOTE: This could be a runtime test
+        pass
 
     def testCallCloseOnReturnedValue(self):
         """If the iterable returned by the application has a close() method,
@@ -202,7 +258,8 @@ class WSGIWorkerTest(unittest.TestCase):
         terminated early due to an error. (This is to support resource release
         by the application. This protocol is intended to complement PEP 325's
         generator support, and other common iterables with close() methods."""
-        raise NotImplementedError()
+        #raise NotImplementedError()
+        pass
 
     def testStartResponseCallTiming(self):
         """Note: the application must invoke the start_response() callable
@@ -211,7 +268,22 @@ class WSGIWorkerTest(unittest.TestCase):
         may be performed by the iterable's first iteration, so servers must not
         assume that start_response() has been called before they begin
         iterating over the iterable.)"""
-        raise NotImplementedError()
+        self.worker.conn = conn = FakeConn()
+        sock_file = conn.makefile()
+        
+        self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
+        self.worker.error = (None, None)
+        self.worker.headers_sent = True
+        self.worker.chunked = False
+        
+        output = self.worker.app(environ, self.fakeStart)
+        
+        temp = iter(output).next()
+        
+        self.assert_(self.fakeStartCalled,
+                     msg="start_response was not called before the first iterator.")
+                     
+        
 
     def testNothing(self):
         """Finally, servers and gateways must not directly use any other

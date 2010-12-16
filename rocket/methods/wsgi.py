@@ -168,11 +168,9 @@ class WSGIWorker(Worker):
         if self.request_method != 'HEAD':
             try:
                 if self.chunked:
-                    self.conn.sendall(b('%x\r\n' % len(data)))
-                # Send another NEWLINE for good measure
-                self.conn.sendall(data)
-                if self.chunked:
-                    self.conn.sendall(b('\r\n'))
+                    self.conn.sendall(b('%x\r\n%s\r\n' % (len(data), data)))
+                else:
+                    self.conn.sendall(data)
             except socket.error:
                 # But some clients will close the connection before that
                 # resulting in a socket error.
