@@ -56,7 +56,8 @@ class ListenerTest(unittest.TestCase):
             self.sec_listener = listener.Listener(self.secure_interface,
                                                   5,
                                                   self.active_queue)
-            self.assert_(self.sec_listener.ready)
+            self.assert_(self.sec_listener.ready,
+                         msg="Secure listener failed to enter ready state.")
 
     def testNotReady(self):
         self.testReady() # create Listener
@@ -112,6 +113,19 @@ class ListenerTest(unittest.TestCase):
             del self.listener
         except:
             pass
+        
+        if has_ssl:
+            try:
+                self.sec_listener.ready = False
+                self.sec_listener.join(5)
+                self.assert_(not self.sec_listener.isAlive())
+            except:
+                pass
+    
+            try:
+                del self.sec_listener
+            except:
+                pass
 
 if __name__ == '__main__':
     unittest.main()

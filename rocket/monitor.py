@@ -119,7 +119,7 @@ class Monitor(Thread):
                 
                 if poll:
                     poll.unregister(r)
-                    del poll_dict[r.file_no()]
+                    del poll_dict[r.fileno()]
                     
                 self.connections.remove(r)
                 list_changed = True
