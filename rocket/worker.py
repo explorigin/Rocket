@@ -314,34 +314,36 @@ class SocketClosed(Exception):
 class ChunkedReader:
     def __init__(self, sock_file):
         self.stream = sock_file
-        self.buffer = None
-        self.buffer_size = 0
+        self.chunk_size = 0
 
-    def _read_chunk(self):
-        # FIXME: ChunkedReader should not buffer any data.  It should only
-        # interpret the chunks and read when requested.
-
-        if not self.buffer or self.buffer.tell() == self.buffer_size:
-            try:
-                self.buffer_size = int(self.stream.readline().strip(), 16)
-            except ValueError:
-                self.buffer_size = 0
-
-            if self.buffer_size:
-                self.buffer = StringIO(self.stream.read(self.buffer_size))
-
-            self.stream.read(2) # flush out the remaining \r\n
-
+    def _read_header(self):
+        chunk_len = ""
+        try:
+            while "" == chunk_len:
+                chunk_len = self.stream.readline().strip()
+            return int(chunk_len, 16)
+        except ValueError:
+            return 0
 
     def read(self, size):
         data = b('')
+        chunk_size = self.chunk_size
         while size:
-            self._read_chunk()
-            if not self.buffer_size:
+            if not chunk_size:
+                chunk_size = self._read_header()
+            
+            if size < chunk_size:
+                data += self.stream.read(size)
+                chunk_size -= size
                 break
-            read_size = min(size, self.buffer_size)
-            data += self.buffer.read(read_size)
-            size -= read_size
+            else:
+                if not chunk_size:
+                    break
+                data += self.stream.read(chunk_size)
+                size -= chunk_size
+                chunk_size = 0
+
+        self.chunk_size = chunk_size
         return data
 
     def readline(self):
