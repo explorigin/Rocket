@@ -139,7 +139,7 @@ class Monitor(Thread):
                         self.log.debug('Flushing stale connection: %s:%i%s' % data)
                     if poll:
                         poll.unregister(r)
-                        del poll_dict[r.file_no()]
+                        del poll_dict[r.fileno()]
 
                     self.connections.remove(c)
                     list_changed = True

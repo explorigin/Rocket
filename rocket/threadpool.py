@@ -107,7 +107,6 @@ class ThreadPool:
         if not amount:
             amount = self.max_threads
 
-        # FIXME - self.max_threads is checked against twice
         amount = min([amount, self.max_threads - len(self.threads)])
         
         if __debug__:
@@ -145,8 +144,6 @@ class ThreadPool:
             if queueSize == 0 and threadCount > self.min_threads:
                 self.shrink()
 
-            # FIXME - self.max_threads is checked against twice
-            elif queueSize > self.grow_threshold \
-                 and threadCount < self.max_threads:
+            elif queueSize > self.grow_threshold:
 
                 self.grow(queueSize)

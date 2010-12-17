@@ -292,8 +292,6 @@ class Worker(Thread):
                 l = l.split(':', 1)
                 # HTTP header names are us-ascii encoded
 
-                # FIXME - This should be a generic function and not underscore
-                # header names.
                 lname = l[0].strip().replace('-', '_')
                 lval = l[-1].strip()
             headers[str(lname)] = str(lval)

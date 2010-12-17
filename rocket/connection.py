@@ -14,6 +14,18 @@ except ImportError:
     has_ssl = False
 from . import IS_JYTHON, SOCKET_TIMEOUT
 
+# Constants
+SOCKET_METHODS_USED = [
+    'sendall',
+    'settimeout',
+    'send',
+    'shutdown',
+    'makefile',
+    'fileno',
+    'gettimeout',
+    'setblocking'
+]
+
 class Connection:
     def __init__(self, sock_tuple, port, secure=False):
         self.client_addr, self.client_port = sock_tuple[1]
@@ -31,13 +43,8 @@ class Connection:
 
         self.socket.settimeout(SOCKET_TIMEOUT)
 
-        # FIXME - This is slow and unnecessary.
-        for x in dir(self.socket):
-            if not hasattr(self, x):
-                try:
-                    self.__dict__[x] = self.socket.__getattribute__(x)
-                except:
-                    pass
+        for x in SOCKET_METHODS_USED:
+            self.__dict__[x] = self.socket.__getattribute__(x)
 
     def close(self):
         if hasattr(self.socket, '_sock'):
