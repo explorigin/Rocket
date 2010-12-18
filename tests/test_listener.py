@@ -13,9 +13,9 @@ import unittest
 import threading
 try:
     import ssl
-    has_ssl = True
+    HAS_SSL = True
 except ImportError:
-    has_ssl = False
+    HAS_SSL = False
 try:
     from queue import Queue
 except ImportError:
@@ -34,11 +34,20 @@ class ListenerTest(unittest.TestCase):
     def setUp(self):
         self.active_queue = Queue()
         self.interface = ("127.0.0.1", 45451)
-        if has_ssl:
+        self.has_ssl = HAS_SSL
+        if HAS_SSL:
             self.secure_interface = ("127.0.0.1",
                                      45452,
                                      PRIV_KEY_FILE,
                                      PUB_KEY_FILE)
+            if not os.path.exists(PRIV_KEY_FILE):
+                print "Could not find private key file: "+ os.path.abspath(PRIV_KEY_FILE)
+                self.has_ssl = False
+            if not os.path.exists(PUB_KEY_FILE):
+                print "Could not find public key file: "+ os.path.abspath(PUB_KEY_FILE)
+                self.has_ssl = False
+
+
 
     def testReady(self):
         self.listener = listener.Listener(self.interface,
@@ -47,12 +56,7 @@ class ListenerTest(unittest.TestCase):
 
         self.assert_(self.listener.ready)
 
-        if has_ssl:
-            self.assert_(os.path.exists(PRIV_KEY_FILE),
-                         msg="Could not find private key file: "+ os.path.abspath(PRIV_KEY_FILE))
-            self.assert_(os.path.exists(PUB_KEY_FILE),
-                         msg="Could not find public key file: "+ os.path.abspath(PUB_KEY_FILE))
-
+        if self.has_ssl:
             self.sec_listener = listener.Listener(self.secure_interface,
                                                   5,
                                                   self.active_queue)
@@ -88,7 +92,7 @@ class ListenerTest(unittest.TestCase):
         self.assertEqual(self.listener.active_queue.qsize(), 1)
 
     def testWrapSocket(self):
-        if not has_ssl:
+        if not self.has_ssl:
             print "ssl module not available"
             return
 
@@ -113,15 +117,15 @@ class ListenerTest(unittest.TestCase):
             del self.listener
         except:
             pass
-        
-        if has_ssl:
+
+        if self.has_ssl:
             try:
                 self.sec_listener.ready = False
                 self.sec_listener.join(5)
                 self.assert_(not self.sec_listener.isAlive())
             except:
                 pass
-    
+
             try:
                 del self.sec_listener
             except:
