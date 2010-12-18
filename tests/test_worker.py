@@ -102,7 +102,7 @@ class FakeConn:
 
     def close(self):
         self.closed = True
-    
+
 class FakeVars:
     def __init__(self):
         self.args = list()
@@ -259,10 +259,10 @@ class WorkerTest(unittest.TestCase):
 
     def testRunStopSentryValue(self):
         self.active_queue.put(None)
-        
+
         # NOTE: This test may infinite loop instead of fail.
         self.assertEqual(None, self.worker.run())
-    
+
     def testRun_HTTPConnectionOnHTTPSSocket(self):
         conn = FakeConn()
         conn.ssl = True
@@ -272,16 +272,16 @@ class WorkerTest(unittest.TestCase):
         self.active_queue.put(None)
 
         self.worker.closeConnection = False
-        
+
         # NOTE: This test may infinite loop instead of fail.
         self.assertEqual(None, self.worker.run())
-        
+
         # Test that it closed the connection
         self.assert_(self.worker.closeConnection)
-        
+
         # Test that it sent 400 bad request
         self.assertEqual(conn.sendData, 'HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n')
-    
+
     def testRun_HTTPConnection(self):
         conn = FakeConn()
 
@@ -290,15 +290,15 @@ class WorkerTest(unittest.TestCase):
 
         self.worker.closeConnection = False
         self.worker.request_line = ''
-        
+
         # NOTE: This test may infinite loop instead of fail.
         self.assertEqual(None, self.worker.run())
-        
+
         # Test that it closed the connection
         self.assert_(self.worker.closeConnection)
-        
+
         self.assertEqual(conn.sendData, 'HTTP/1.1 500 Server Error\nContent-Length: 12\nContent-Type: text/plain\n\nServer Error\n')
-    
+
     def tearDown(self):
         del self.worker
 

@@ -32,11 +32,25 @@ except ImportError:
     class SSLError(socket.error):
         pass
 # Import Package Modules
-from . import IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler
+from . import IGNORE_ERRORS_ON_CLOSE, b, PY3K, NullHandler, IS_JYTHON
 from .connection import Connection
 
 # Define Constants
 re_SLASH = re.compile('%2F', re.IGNORECASE)
+re_REQUEST_LINE = re.compile(r"""^
+(?P<method>OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT)   # Request Method
+\                                                            # (single space)
+(
+    (?P<scheme>[^:/]+)                                       # Scheme
+    (://)  #
+    (?P<host>[^/]+)                                          # Host
+)? #
+(?P<path>[^ \?]+)                                            # Path
+(\? (?P<query_string>[^ ]+))?                                # Query String
+\                                                            # (single space)
+(?P<protocol>HTTPS?/1\.[01])                                 # Protocol
+$
+""", re.X)
 LOG_LINE = '%(client_ip)s - "%(request_line)s" - %(status)s %(size)s'
 RESPONSE = '''\
 HTTP/1.1 %s
@@ -217,7 +231,7 @@ class Worker(Thread):
                 d = d.decode('ISO-8859-1')
 
             if d == '\r\n':
-                # Allow an extra NEWLINE at the beginner per HTTP 1.1 spec
+                # Allow an extra NEWLINE at the beginning per HTTP 1.1 spec
                 if __debug__:
                     self.err_log.debug('Client sent newline')
 
@@ -227,19 +241,43 @@ class Worker(Thread):
         except socket.timeout:
             raise SocketTimeout("Socket timed out before request.")
 
-        if d.strip() == '':
+        d = d.strip()
+
+        if not d:
             if __debug__:
                 self.err_log.debug('Client did not send a recognizable request.')
             raise SocketClosed('Client closed socket.')
 
-        try:
-            self.request_line = d.strip()
-            method, uri, proto = self.request_line.split(' ')
-            assert proto.startswith('HTTP')
-        except ValueError:
+        self.request_line = d
+
+        # NOTE: I've replaced the traditional method of procedurally breaking
+        # apart the request line with a (rather unsightly) regular expression.
+        # However, Java's regexp support sucks so bad that it actually takes
+        # longer in Jython to process the regexp than procedurally. So I've
+        # left the old code here for Jython's sake...for now.
+        if IS_JYTHON:
+            return self._read_request_line_jython(d)
+
+        match = re_REQUEST_LINE.match(d)
+
+        if not match:
             self.send_response('400 Bad Request')
             raise BadRequest
-        except AssertionError:
+
+        req = match.groupdict()
+        for k,v in req.items():
+            if not v:
+                req[k] = ""
+
+        return req
+
+    def _read_request_line_jython(self, d):
+        try:
+            method, uri, proto = d.split(' ')
+            if not proto.startswith('HTTP'):
+                self.send_response('400 Bad Request')
+                raise BadRequest
+        except ValueError:
             self.send_response('400 Bad Request')
             raise BadRequest
 
@@ -267,6 +305,7 @@ class Worker(Thread):
                    scheme=scheme.lower(),
                    host=host)
         return req
+
 
     def read_headers(self, sock_file):
         headers = Headers([])
@@ -331,7 +370,7 @@ class ChunkedReader:
         while size:
             if not chunk_size:
                 chunk_size = self._read_header()
-            
+
             if size < chunk_size:
                 data += self.stream.read(size)
                 chunk_size -= size
