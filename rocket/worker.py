@@ -143,10 +143,6 @@ class Worker(Thread):
                     self.err_log.debug('Received a death threat.')
                 return conn
 
-            # TODO: Move this to listener.py, does it affect speed at all?
-            if isinstance(conn, tuple):
-                conn = Connection(*conn)
-
             self.conn = conn
 
             if conn.ssl != conn.secure:

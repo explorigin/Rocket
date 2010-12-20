@@ -126,7 +126,9 @@ class Listener(Thread):
                 if self.secure:
                     sock = self.wrap_socket(sock)
 
-                self.active_queue.put((sock, self.interface[1], self.secure))
+                conn = Connection(sock, self.interface[1], self.secure)
+
+                self.active_queue.put(conn)
 
             except socket.timeout:
                 # socket.timeout will be raised every THREAD_STOP_CHECK_INTERVAL
