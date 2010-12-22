@@ -307,7 +307,7 @@ class Worker(Thread):
 
 
     def read_headers(self, sock_file):
-        headers = Headers([])
+        headers = dict()
         l = sock_file.readline()
 
         lname = None
@@ -330,7 +330,7 @@ class Worker(Thread):
                 l = l.split(':', 1)
                 # HTTP header names are us-ascii encoded
 
-                lname = l[0].strip().replace('-', '_')
+                lname = l[0].strip().upper().replace('-', '_')
                 lval = l[-1].strip()
             headers[str(lname)] = str(lval)
 
