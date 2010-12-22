@@ -143,6 +143,9 @@ class Worker(Thread):
                     self.err_log.debug('Received a death threat.')
                 return conn
 
+            if isinstance(conn, tuple):
+                conn = Connection(*conn)
+
             self.conn = conn
 
             if conn.ssl != conn.secure:
@@ -310,11 +313,11 @@ class Worker(Thread):
         lname = None
         lval = None
         while True:
-            try:
-                if PY3K:
+            if PY3K:
+                try:
                     l = str(l, 'ISO-8859-1')
-            except UnicodeDecodeError:
-                self.err_log.warning('Client sent invalid header: ' + repr(l))
+                except UnicodeDecodeError:
+                    self.err_log.warning('Client sent invalid header: ' + repr(l))
 
             if l == '\r\n':
                 break
