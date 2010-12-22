@@ -75,7 +75,7 @@ class FakeConn:
 
     def makefile(mode="rb", buf_size=1024):
         return StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()) + '\r\n\r\n')
-        
+
     def close(self):
         self.closed = True
 
@@ -94,7 +94,7 @@ class WSGIWorkerTest(unittest.TestCase):
         self.worker.header_set = []
         self.serverport = 45454
         self.starttuple = (socket.socket(), ('127.0.0.1', self.serverport))
-        
+
         self.fakeStartCalled = False
 
     def fakeStart(self, a, b, c=None):
@@ -184,16 +184,16 @@ class WSGIWorkerTest(unittest.TestCase):
         support certain existing frameworks' imperative output APIs; it should
         not be used by new applications or frameworks if it can be avoided. See
         the Buffering and Streaming section for more details.)"""
-        
+
         conn = FakeConn()
         sock_file = conn.makefile()
-        
+
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
-        
+
         out = self.worker.start_response("500 Server Error",
                                          [('Content-Type', 'text/plain'),
                                           ('Content-Length', '16')])
-                                          
+
         self.assert_(callable(out),
                      msg="WSGIWorker.start_response() did not return a callable.")
 
@@ -208,14 +208,14 @@ class WSGIWorkerTest(unittest.TestCase):
 
         conn = FakeConn()
         sock_file = conn.makefile()
-        
+
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
-        
+
         output = self.worker.app(environ, self.worker.start_response)
-        
+
         self.assert_(hasattr(output, "__iter__") or hasattr(output, "__next__"),
                      msg="Value returned by WSGI app is not iterable")
-        
+
 
     def testOutputHandling(self):
         """The server or gateway should treat the yielded strings as binary
@@ -228,18 +228,18 @@ class WSGIWorkerTest(unittest.TestCase):
         details.)"""
         self.worker.conn = conn = FakeConn()
         sock_file = conn.makefile()
-        
+
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
         self.worker.error = (None, None)
         self.worker.headers_sent = True
         self.worker.chunked = False
-        
+
         output = self.worker.app(environ, self.worker.start_response)
-        
+
         for data in output:
             if data:
                 self.worker.write(data, len(data))
-                
+
         self.assertEqual(''.join(output), conn.sendData)
 
     def testReturnedValueLength(self):
@@ -270,20 +270,20 @@ class WSGIWorkerTest(unittest.TestCase):
         iterating over the iterable.)"""
         self.worker.conn = conn = FakeConn()
         sock_file = conn.makefile()
-        
+
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
         self.worker.error = (None, None)
         self.worker.headers_sent = True
         self.worker.chunked = False
-        
+
         output = self.worker.app(environ, self.fakeStart)
-        
+
         temp = iter(output).next()
-        
+
         self.assert_(self.fakeStartCalled,
                      msg="start_response was not called before the first iterator.")
-                     
-        
+
+
 
     def testNothing(self):
         """Finally, servers and gateways must not directly use any other

@@ -22,6 +22,7 @@ else:
 NEWLINE = b('\r\n')
 HEADER_RESPONSE = '''HTTP/1.1 %s\r\n%s'''
 BASE_ENV = {'SERVER_NAME': SERVER_NAME,
+            'SCRIPT_NAME': '',  # Direct call WSGI does not need a name
             'wsgi.errors': sys.stderr,
             'wsgi.version': (1, 0),
             'wsgi.multiprocess': False,
@@ -55,28 +56,28 @@ class WSGIWorker(Worker):
         # Grab the request line
         request = self.read_request_line(sock_file)
 
-        # Grab the headers
-        self.headers = dict([(str('HTTP_'+k.upper()), v) for k, v in self.read_headers(sock_file).items()])
-
         # Copy the Base Environment
-        environ = dict(self.base_environ)
+        environ = self.base_environ.copy()
+
+        # Grab the headers
+        for k, v in self.read_headers(sock_file).items():
+            environ[str('HTTP_'+k)] = v
 
         # Add CGI Variables
         environ['REQUEST_METHOD'] = request['method']
         environ['PATH_INFO'] = request['path']
         environ['SERVER_PROTOCOL'] = request['protocol']
-        environ['SCRIPT_NAME'] = '' # Direct call WSGI does not need a name
         environ['SERVER_PORT'] = str(conn.server_port)
         environ['REMOTE_PORT'] = str(conn.client_port)
         environ['REMOTE_ADDR'] = str(conn.client_addr)
         environ['QUERY_STRING'] = request['query_string']
-        if 'HTTP_CONTENT_LENGTH' in self.headers:
-            environ['CONTENT_LENGTH'] = self.headers['HTTP_CONTENT_LENGTH']
-        if 'HTTP_CONTENT_TYPE' in self.headers:
-            environ['CONTENT_TYPE'] = self.headers['HTTP_CONTENT_TYPE']
+        if 'HTTP_CONTENT_LENGTH' in environ:
+            environ['CONTENT_LENGTH'] = environ['HTTP_CONTENT_LENGTH']
+        if 'HTTP_CONTENT_TYPE' in environ:
+            environ['CONTENT_TYPE'] = environ['HTTP_CONTENT_TYPE']
 
         # Save the request method for later
-        self.request_method = environ['REQUEST_METHOD'].upper()
+        self.request_method = environ['REQUEST_METHOD']
 
         # Add Dynamic WSGI Variables
         if conn.ssl:
@@ -84,18 +85,17 @@ class WSGIWorker(Worker):
             environ['HTTPS'] = 'on'
         else:
             environ['wsgi.url_scheme'] = 'http'
-        if self.headers.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked':
+
+        if environ.get('HTTP_TRANSFER_ENCODING', '') == 'chunked':
             environ['wsgi.input'] = ChunkedReader(sock_file)
         else:
             environ['wsgi.input'] = sock_file
-
-        # Add HTTP Headers
-        environ.update(self.headers)
 
         return environ
 
     def send_headers(self, data, sections):
         h_set = self.header_set
+
         # Does the app want us to send output chunked?
         self.chunked = h_set.get('transfer-encoding', '').lower() == 'chunked'
 
@@ -127,7 +127,7 @@ class WSGIWorker(Worker):
 
         if 'connection' not in h_set:
             # If the application did not provide a connection header, fill it in
-            client_conn = self.headers.get('HTTP_CONNECTION', '').lower()
+            client_conn = self.environ.get('HTTP_CONNECTION', '').lower()
             if self.environ['SERVER_PROTOCOL'] == 'HTTP/1.1':
                 # HTTP = 1.1 defaults to keep-alive connections
                 if client_conn:
@@ -216,7 +216,7 @@ class WSGIWorker(Worker):
 
         if __debug__:
             self.err_log.debug('Getting sock_file')
-            
+
         # Build our file-like object
         sock_file = conn.makefile('rb',BUF_SIZE)
 
@@ -225,12 +225,13 @@ class WSGIWorker(Worker):
             self.environ = environ = self.build_environ(sock_file, conn)
 
             # Handle 100 Continue
-            if environ.get('HTTP_EXPECT', '').lower() == '100-continue':
+            if environ.get('HTTP_EXPECT', '') == '100-continue':
                 res = environ['SERVER_PROTOCOL'] + ' 100 Continue\r\n\r\n'
                 conn.sendall(b(res))
 
             # Send it to our WSGI application
             output = self.app(environ, self.start_response)
+
             if not hasattr(output, '__len__') and not hasattr(output, '__iter__'):
                 self.error = ('500 Internal Server Error',
                               'WSGI applications must return a list or '
