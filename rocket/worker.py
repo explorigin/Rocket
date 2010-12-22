@@ -349,7 +349,7 @@ class SocketClosed(Exception):
     "Exception for when a socket is closed by the client."
     pass
 
-class ChunkedReader:
+class ChunkedReader(object):
     def __init__(self, sock_file):
         self.stream = sock_file
         self.chunk_size = 0

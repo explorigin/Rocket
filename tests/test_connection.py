@@ -29,7 +29,7 @@ class ConnectionTest(unittest.TestCase):
     def testSocketTimeout(self):
         c = connection.Connection(self.starttuple, self.serverport)
 
-        timeout = c.gettimeout()
+        timeout = c.socket.gettimeout()
         self.assertEqual(timeout, SOCKET_TIMEOUT)
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ from .listener import Listener
 log = logging.getLogger('Rocket')
 log.addHandler(NullHandler())
 
-class Rocket:
+class Rocket(object):
     """The Rocket class is responsible for handling threads and accepting and
     dispatching connections."""
 

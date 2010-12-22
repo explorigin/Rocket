@@ -14,19 +14,22 @@ except ImportError:
     has_ssl = False
 from . import IS_JYTHON, SOCKET_TIMEOUT
 
-# Constants
-SOCKET_METHODS_USED = [
-    'sendall',
-    'settimeout',
-    'send',
-    'shutdown',
-    'makefile',
-    'fileno',
-    'gettimeout',
-    'setblocking'
-]
+class Connection(object):
+    __slots__ = [
+        'setblocking',
+        'sendall',
+        'shutdown',
+        'makefile',
+        'fileno',
+        'client_addr',
+        'client_port',
+        'server_port',
+        'socket',
+        'start_time',
+        'ssl',
+        'secure'
+    ]
 
-class Connection:
     def __init__(self, sock_tuple, port, secure=False):
         self.client_addr, self.client_port = sock_tuple[1]
         self.server_port = port
@@ -43,8 +46,11 @@ class Connection:
 
         self.socket.settimeout(SOCKET_TIMEOUT)
 
-        for x in SOCKET_METHODS_USED:
-            self.__dict__[x] = self.socket.__getattribute__(x)
+        self.sendall = self.socket.sendall
+        self.shutdown = self.socket.shutdown
+        self.fileno = self.socket.fileno
+        self.makefile = self.socket.makefile
+        self.setblocking = self.socket.setblocking
 
     def close(self):
         if hasattr(self.socket, '_sock'):
