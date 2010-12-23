@@ -97,8 +97,7 @@ class Listener(Thread):
 
             self.ready = True
 
-    def wrap_socket(self, sock_pair):
-        sock, client = sock_pair
+    def wrap_socket(self, sock):
         try:
             sock = ssl.wrap_socket(sock,
                                    keyfile = self.interface[2],
@@ -111,7 +110,6 @@ class Listener(Thread):
             # by Worker and dealt with appropriately.
             pass
 
-        return (sock, client)
 
     def run(self):
         if not self.ready:
@@ -122,11 +120,14 @@ class Listener(Thread):
             self.err_log.debug('Entering main loop.')
         while True:
             try:
-                sock = self.listener.accept()
-                if self.secure:
-                    sock = self.wrap_socket(sock)
+                sock, addr = self.listener.accept()
 
-                self.active_queue.put((sock, self.interface[1], self.secure))
+                if self.secure:
+                    self.wrap_socket(sock)
+
+                self.active_queue.put(((sock, addr),
+                                       self.interface[1],
+                                       self.secure))
 
             except socket.timeout:
                 # socket.timeout will be raised every THREAD_STOP_CHECK_INTERVAL
