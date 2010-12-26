@@ -111,7 +111,7 @@ class Rocket(object):
         self._threadpool.start()
 
         # Start our monitor thread
-        self._monitor.daemon = True
+        self._monitor.setDaemon(True)
         self._monitor.start()
 
         # I know that EXPR and A or B is bad but I'm keeping it for Py2.4

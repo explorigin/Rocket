@@ -62,7 +62,6 @@ class ThreadPool:
             
         for thread in self.threads:
             thread.setDaemon(True)
-            thread._pool = self
             thread.start()
 
     def stop(self):
@@ -117,6 +116,7 @@ class ThreadPool:
                                        self.active_queue,
                                        self.monitor_queue)
 
+            worker.setDaemon(True)
             self.threads.add(worker)
             worker.start()
 
