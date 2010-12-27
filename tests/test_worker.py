@@ -54,6 +54,14 @@ SENDALL_VALUES = [
     '''HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n''',
 ]
 REQUEST_DICT = {
+    'GET / HTTP/1.1': \
+        dict(path='/',
+            query_string='',
+            scheme='',
+            host='',
+            method='GET',
+            protocol='HTTP/1.1'
+        ),
     'GET /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1': \
         dict(path='/dir1/dir2/file1.html',
             query_string='a=1&b=2',
@@ -160,8 +168,12 @@ class WorkerTest(unittest.TestCase):
             self.assertEqual(headers[header_name], HEADER_DICT[header_name])
 
     def testReadRequestLine(self):
+        self.worker.conn = FakeConn()
         for reqline, resdict in REQUEST_DICT.items():
-            result = self.worker.read_request_line(StringIO(reqline + '\r\n'))
+            try:
+                result = self.worker.read_request_line(StringIO(reqline + '\r\n'))
+            except:
+                self.assert_(False, msg="Received BadRequest Exception for:" + reqline)
             for key in result:
                 self.assertEqual(result[key], resdict[key])
 
