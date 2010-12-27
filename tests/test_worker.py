@@ -80,9 +80,13 @@ REQUEST_DICT = {
         ),
 }
 BAD_REQUESTS = [
-    'GET /dir1/dir2/file1.html?a=1&b=2 SPDY/1.1',
-    'GET /dir1/dir2/file1.html?a=1&b=2HTTP/1.1',
-    'GET/dir1/dir2/file1.html?a=1&b=2 HTTP/1.1',
+    'GET /dir1/dir2/file1.html?a=1&b=2 SPDY/1.1', # Bad protocol
+    'GET /dir1/dir2/file1.html?a=1&b=2HTTP/1.1', # Bad format
+    'GET/dir1/dir2/file1.html?a=1&b=2 HTTP/1.1', # Bad format
+    'GET /dir1/dir2/file1.html?a=1&b=2 HTTP/0.9', # Bad protocol
+    'GET file1.html HTTP/1.1', # Bad path
+    'OPTIONS *.* HTTP/1.0', # Bad path
+    'REMOVE /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1', # Bad method
 ]
 
 class FakeConn:
