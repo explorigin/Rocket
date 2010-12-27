@@ -12,15 +12,6 @@ from threading import Thread
 # Import Package Modules
 from . import IS_JYTHON, THREAD_STOP_CHECK_INTERVAL, NullHandler
 
-# Setup Polling if supported (but it doesn't work well on Jython)
-if hasattr(select, 'poll') and not IS_JYTHON:
-    try:
-        poll = select.epoll()
-    except:
-        poll = select.poll()
-else:
-    poll = None
-
 class Monitor(Thread):
     # Monitor worker class.
 
@@ -47,7 +38,6 @@ class Monitor(Thread):
         self.log.addHandler(NullHandler())
 
         self.active = True
-        poll_dict = dict()
         conn_list = list()
         list_changed = False
 
@@ -82,26 +72,19 @@ class Monitor(Thread):
                 if __debug__:
                     self.log.debug('Adding connection to monitor list.')
 
-                if poll:
-                    poll.register(c)
-                    poll_dict.update({c.fileno():c})
-
                 self.connections.add(c)
                 list_changed = True
 
             # Wait on those connections
             self.log.debug('Blocking on connections')
-            if poll:
-                readable = [poll_dict[x[0]] for x in poll.poll(THREAD_STOP_CHECK_INTERVAL)]
-            else:
-                if list_changed:
-                    conn_list = list(self.connections)
-                    list_changed = False
+            if list_changed:
+                conn_list = list(self.connections)
+                list_changed = False
 
-                readable = select.select(conn_list,
-                                         [],
-                                         [],
-                                         THREAD_STOP_CHECK_INTERVAL)[0]
+            readable = select.select(conn_list,
+                                     [],
+                                     [],
+                                     THREAD_STOP_CHECK_INTERVAL)[0]
 
             # If we have any readable connections, put them back
             for r in readable:
@@ -117,10 +100,6 @@ class Monitor(Thread):
                 r.start_time = time.time()
                 self.active_queue.put(r)
                 
-                if poll:
-                    poll.unregister(r)
-                    del poll_dict[r.fileno()]
-                    
                 self.connections.remove(r)
                 list_changed = True
 
@@ -137,9 +116,6 @@ class Monitor(Thread):
                         # "EXPR and A or B" kept for Py2.4 compatibility
                         data = (c.client_addr, c.server_port, c.ssl and '*' or '')
                         self.log.debug('Flushing stale connection: %s:%i%s' % data)
-                    if poll:
-                        poll.unregister(r)
-                        del poll_dict[r.fileno()]
 
                     self.connections.remove(c)
                     list_changed = True
