@@ -25,8 +25,8 @@ except ImportError:
 from rocket import listener
 
 # Constants
-PRIV_KEY_FILE = os.path.join(os.path.dirname(__file__), "priv_key.pem")
-PUB_KEY_FILE = os.path.join(os.path.dirname(__file__), "pub_key.pem")
+PRIV_KEY_FILE = os.path.join(os.path.dirname(__file__), "cert_key.pem")
+PUB_KEY_FILE = os.path.join(os.path.dirname(__file__), "cert.pem")
 
 
 # Define Tests

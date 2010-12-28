@@ -80,6 +80,8 @@ Rocket(interfaces_, method_, app_info_, min_threads_, max_threads_, queue_size_,
 
  **NOTE:** The CherryPyWSGIServer_ adapter does not support SSL in the typical way that CherryPy's server does.  Instead, pass an interfaces_-like list or tuple to CherryPyWSGIServer_ and it will be handled as Rocket does natively.
 
+ **ALSO NOTE:** There is a key-certificate pair in the tests directory (in the source distribution).  Feel free to use these for testing. DO NOT USE THE INCLUDED CERTIFICATES FOR A PRODUCTION WEBSITE!  You have been warned.
+
 .. _method:
 
 * method_ - A string value indicating the type of Worker to use to answer the requests received by Rocket.  The default is **wsgi** and will invoke the WSGIWorker class for handling requests.  Go to the Methods_ section to see all available methods.
