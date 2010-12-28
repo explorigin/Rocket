@@ -141,7 +141,7 @@ class WSGIWorkerTest(unittest.TestCase):
         ]
         # NOTE: We could also check other HTTP_ vars but they are browser dependent.
 
-        conn = FakeConn()
+        self.worker.conn = conn = FakeConn()
 
         self.worker.conn = conn
 
@@ -185,7 +185,7 @@ class WSGIWorkerTest(unittest.TestCase):
         not be used by new applications or frameworks if it can be avoided. See
         the Buffering and Streaming section for more details.)"""
 
-        conn = FakeConn()
+        self.worker.conn = conn = FakeConn()
         sock_file = conn.makefile()
 
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)
@@ -206,7 +206,7 @@ class WSGIWorkerTest(unittest.TestCase):
         how it is accomplished, the application object must always return an
         iterable yielding zero or more strings."""
 
-        conn = FakeConn()
+        self.worker.conn = conn = FakeConn()
         sock_file = conn.makefile()
 
         self.worker.environ = environ = self.worker.build_environ(sock_file, conn)

@@ -59,6 +59,8 @@ Content-Type: %s
 
 %s
 '''
+if IS_JYTHON:
+    HTTP_METHODS = set(['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT'])
 
 class Worker(Thread):
     """The Worker class is a base class responsible for receiving connections
@@ -271,9 +273,12 @@ class Worker(Thread):
         return req
 
     def _read_request_line_jython(self, d):
+        d = d.strip()
         try:
             method, uri, proto = d.split(' ')
-            if not proto.startswith('HTTP'):
+            if not proto.startswith('HTTP') or \
+               proto[-3:] not in ('1.0', '1.1') or \
+               method not in HTTP_METHODS:
                 self.send_response('400 Bad Request')
                 raise BadRequest
         except ValueError:
