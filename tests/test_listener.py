@@ -101,7 +101,7 @@ class ListenerTest(unittest.TestCase):
         self.assert_(self.sec_listener.secure,
                      msg="must test on an HTTPS socket")
 
-        sock, client = self.sec_listener.wrap_socket((self.sec_listener.listener, None))
+        sock = self.sec_listener.wrap_socket(self.sec_listener.listener)
 
         self.assert_(isinstance(sock, ssl.SSLSocket))
 

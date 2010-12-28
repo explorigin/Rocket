@@ -109,6 +109,8 @@ class Listener(Thread):
             # secure socket. We don't do anything because it will be detected
             # by Worker and dealt with appropriately.
             pass
+        
+        return sock
 
 
     def run(self):
@@ -123,7 +125,7 @@ class Listener(Thread):
                 sock, addr = self.listener.accept()
 
                 if self.secure:
-                    self.wrap_socket(sock)
+                    sock = self.wrap_socket(sock)
 
                 self.active_queue.put(((sock, addr),
                                        self.interface[1],
