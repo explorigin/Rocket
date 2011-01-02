@@ -81,10 +81,16 @@ class Monitor(Thread):
                 conn_list = list(self.connections)
                 list_changed = False
 
-            readable = select.select(conn_list,
-                                     [],
-                                     [],
-                                     THREAD_STOP_CHECK_INTERVAL)[0]
+            try:
+                readable = select.select(conn_list,
+                                         [],
+                                         [],
+                                         THREAD_STOP_CHECK_INTERVAL)[0]
+            except:
+                if self.active:
+                    raise
+                else:
+                    break
 
             # If we have any readable connections, put them back
             for r in readable:
