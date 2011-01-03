@@ -29,13 +29,14 @@ class Monitor(Thread):
         self.active_queue = active_queue
         self.timeout = timeout
 
+        self.log = logging.getLogger('Rocket.Monitor')
+        self.log.addHandler(NullHandler())
+
         self.connections = set()
         self.active = False
 
     def run(self):
         self.name = self.getName()
-        self.log = logging.getLogger('Rocket.Monitor')
-        self.log.addHandler(NullHandler())
 
         self.active = True
         conn_list = list()

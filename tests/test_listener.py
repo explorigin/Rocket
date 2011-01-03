@@ -8,6 +8,7 @@
 # Import System Modules
 import os
 import time
+import types
 import socket
 import unittest
 import threading
@@ -49,7 +50,22 @@ class ListenerTest(unittest.TestCase):
                 print "Could not find public key file: "+ os.path.abspath(PUB_KEY_FILE)
                 self.has_ssl = False
 
-
+    def _waitForEqual(self, a, b):
+        attempts = 20
+        while attempts > 0:
+            if isinstance(a, (types.FunctionType, types.MethodType)):
+                _a = a()
+            else:
+                _a = a
+            if isinstance(b, (types.FunctionType, types.MethodType)):
+                _b = b()
+            else:
+                _b = b
+            if _a == _b:
+                return True
+            time.sleep(0.25)
+            attempts -= 1
+        return False
 
     def testReady(self):
         self.listener = listener.Listener(self.interface,
@@ -73,7 +89,7 @@ class ListenerTest(unittest.TestCase):
         self.listener.start()
 
         # Give thread a chance to die
-        time.sleep(0.5)
+        self._waitForEqual(self.listener.isAlive(), False)
 
         self.assert_(not self.listener.isAlive())
 
@@ -89,7 +105,7 @@ class ListenerTest(unittest.TestCase):
 
         sock = sock.connect(self.interface)
 
-        time.sleep(0.5)
+        self._waitForEqual(self.listener.active_queue.qsize(), 1)
 
         self.assertEqual(self.listener.active_queue.qsize(), 1)
 

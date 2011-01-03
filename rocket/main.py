@@ -65,20 +65,22 @@ class Rocket(object):
         if isinstance(app_info, dict):
             app_info['server_software'] = SERVER_SOFTWARE
 
-        monitor_queue = Queue()
-        active_queue = Queue()
+        self.monitor_queue = Queue()
+        self.active_queue = Queue()
 
-        self._monitor = Monitor(monitor_queue, active_queue, timeout)
+        self._monitor = Monitor(self.monitor_queue,
+                                self.active_queue,
+                                timeout)
 
         self._threadpool = ThreadPool(get_method(method),
                                       app_info = app_info,
-                                      active_queue=active_queue,
-                                      monitor_queue = monitor_queue,
-                                      min_threads=min_threads,
-                                      max_threads=max_threads)
+                                      active_queue = self.active_queue,
+                                      monitor_queue = self.monitor_queue,
+                                      min_threads = min_threads,
+                                      max_threads = max_threads)
 
         # Build our socket listeners
-        self.listeners = [Listener(i, queue_size, active_queue) for i in self.interfaces]
+        self.listeners = [Listener(i, queue_size, self.active_queue) for i in self.interfaces]
         for ndx in range(len(self.listeners)-1, 0, -1):
             if not self.listeners[ndx].ready:
                 del self.listeners[ndx]
