@@ -24,9 +24,10 @@ except ImportError:
         from StringIO import StringIO
 
 # Import Custom Modules
-from rocket import worker
+from rocket import worker, IS_JYTHON
 
 # Constants
+SERVER_PORT = 45451 if IS_JYTHON else -1
 SAMPLE_HEADERS = '''\
 GET /dumprequest HTTP/1.1
 Host: djce.org.uk
@@ -125,7 +126,7 @@ class WorkerTest(unittest.TestCase):
         self.active_queue = Queue()
         self.monitor_queue = Queue()
         self.worker = worker.Worker(dict(), self.active_queue, self.monitor_queue)
-        self.starttuple = (socket.socket(), ('127.0.0.1', 45451))
+        self.starttuple = (socket.socket(), ('127.0.0.1', SERVER_PORT))
 
     def testRunApp(self):
         self.assert_(self.worker.closeConnection,

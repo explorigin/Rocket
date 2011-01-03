@@ -95,7 +95,7 @@ class Rocket(object):
         log.info('Received SIGHUP')
         self.restart()
 
-    def start(self):
+    def start(self, background=False):
         log.info('Starting %s' % SERVER_SOFTWARE)
 
         # Set up our shutdown signals
@@ -124,6 +124,11 @@ class Rocket(object):
 
         for l in self.listeners:
             l.start()
+
+        if background:
+            # background is undocumented because it disables dynamic resizing 
+            # of the threadpool.  It's mainly there to facilitate testing.
+            return
 
         tp = self._threadpool
         dynamic_resize = tp.dynamic_resize

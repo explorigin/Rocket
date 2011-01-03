@@ -10,12 +10,15 @@ import sys
 import socket
 import unittest
 # Import Custom Modules
-from rocket import connection, SOCKET_TIMEOUT
+from rocket import connection, SOCKET_TIMEOUT, IS_JYTHON
+
+# Constants
+SERVER_PORT = 45450 if IS_JYTHON else -1
 
 # Define Tests
 class ConnectionTest(unittest.TestCase):
     def setUp(self):
-        self.starttuple = (socket.socket(), ('127.0.0.1', 30453))
+        self.starttuple = (socket.socket(), ('127.0.0.1', SERVER_PORT))
         self.serverport = 81
 
     def testMembers(self):

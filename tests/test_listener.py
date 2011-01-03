@@ -22,9 +22,11 @@ except ImportError:
     from Queue import Queue
 
 # Import Custom Modules
-from rocket import listener
+from rocket import listener, IS_JYTHON
 
 # Constants
+SERVER_PORT = 45452 if IS_JYTHON else -1
+SECURE_SERVER_PORT = 45453 if IS_JYTHON else -1
 PRIV_KEY_FILE = os.path.join(os.path.dirname(__file__), "cert_key.pem")
 PUB_KEY_FILE = os.path.join(os.path.dirname(__file__), "cert.pem")
 
@@ -33,11 +35,11 @@ PUB_KEY_FILE = os.path.join(os.path.dirname(__file__), "cert.pem")
 class ListenerTest(unittest.TestCase):
     def setUp(self):
         self.active_queue = Queue()
-        self.interface = ("127.0.0.1", 45451)
+        self.interface = ("127.0.0.1", SERVER_PORT)
         self.has_ssl = HAS_SSL
         if HAS_SSL:
             self.secure_interface = ("127.0.0.1",
-                                     45452,
+                                     SECURE_SERVER_PORT,
                                      PRIV_KEY_FILE,
                                      PUB_KEY_FILE)
             if not os.path.exists(PRIV_KEY_FILE):
