@@ -92,6 +92,9 @@ class Monitor(Thread):
                 else:
                     break
 
+            if not self.active:
+                break
+
             # If we have any readable connections, put them back
             for r in readable:
                 if __debug__:
