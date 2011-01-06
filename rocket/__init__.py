@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2010 Timothy Farrell
+# Copyright (c) 2011 Timothy Farrell
 
 # Import System Modules
 import sys
@@ -11,7 +11,7 @@ import logging
 import platform
 
 # Define Constants
-VERSION = '1.2.2'
+VERSION = '1.2.3'
 SERVER_NAME = socket.gethostname()
 SERVER_SOFTWARE = 'Rocket %s' % VERSION
 HTTP_SERVER_SOFTWARE = '%s Python/%s' % (SERVER_SOFTWARE, sys.version.split(' ')[0])
