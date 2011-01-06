@@ -269,6 +269,8 @@ class Worker(Thread):
         for k,v in req.items():
             if not v:
                 req[k] = ""
+            if k == 'path':
+                req['path'] = r'%2F'.join([unquote(x) for x in re_SLASH.split(v)])
 
         return req
 

@@ -63,16 +63,16 @@ REQUEST_DICT = {
             method='GET',
             protocol='HTTP/1.1'
         ),
-    'GET /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1': \
-        dict(path='/dir1/dir2/file1.html',
+    'GET /dir1/dir2%2Fdir3/file1.html?a=1&b=2 HTTP/1.1': \
+        dict(path='/dir1/dir2%2Fdir3/file1.html',
             query_string='a=1&b=2',
             scheme='',
             host='',
             method='GET',
             protocol='HTTP/1.1'
         ),
-    'POST https://example.com/file1.html HTTP/1.0': \
-        dict(path='/file1.html',
+    'POST https://example.com/file%201.html HTTP/1.0': \
+        dict(path='/file 1.html',
             query_string='',
             scheme='https',
             host='example.com',
