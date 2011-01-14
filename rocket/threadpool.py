@@ -36,6 +36,7 @@ class ThreadPool:
         self.max_threads = max_threads
         self.monitor_queue = monitor_queue
         self.stop_server = False
+        self.alive = False
         
         # TODO - Optimize this based on some real-world usage data
         self.grow_threshold = int(max_threads/10) + 2
@@ -49,11 +50,7 @@ class ThreadPool:
         self.app_info = app_info
 
         self.threads = set()
-        for x in range(min_threads):
-            worker = self.worker_class(app_info,
-                                       self.active_queue,
-                                       self.monitor_queue)
-            self.threads.add(worker)
+        self.grow(min_threads, start=False)
 
     def start(self):
         self.stop_server = False
@@ -61,26 +58,30 @@ class ThreadPool:
             log.debug("Starting threads.")
             
         for thread in self.threads:
-            thread.setDaemon(True)
             thread.start()
+            
+        self.alive = True
 
     def stop(self):
+        self.alive = False
+        
         if __debug__:
             log.debug("Stopping threads.")
             
         self.stop_server = True
 
         # Prompt the threads to die
-        for t in self.threads:
-            self.active_queue.put(None)
+        self.shrink(len(self.threads))
 
         # Give them the gun
         for t in self.threads:
-            t.kill()
+            if t.isAlive():
+                t.kill()
 
         # Wait until they pull the trigger
         for t in self.threads:
-            t.join()
+            if t.isAlive():
+                t.join()
 
         # Clean up the mess
         self.bring_out_your_dead()
@@ -99,7 +100,7 @@ class ThreadPool:
                 pass
         self.check_for_dead_threads -= len(dead_threads)
 
-    def grow(self, amount=None):
+    def grow(self, amount=None, start=True):
         if self.stop_server:
             return
 
@@ -118,7 +119,8 @@ class ThreadPool:
 
             worker.setDaemon(True)
             self.threads.add(worker)
-            worker.start()
+            if start:
+                worker.start()
 
     def shrink(self, amount=1):
         if __debug__:

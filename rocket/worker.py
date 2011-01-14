@@ -83,6 +83,7 @@ class Worker(Thread):
         self.size = 0
         self.status = "200 OK"
         self.closeConnection = True
+        self.request_line = ""
 
         # Request Log
         self.req_log = logging.getLogger('Rocket.Requests')

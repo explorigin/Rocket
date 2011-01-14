@@ -157,7 +157,7 @@ Instances
 
 An instance of Rocket (or CherryPyWSGIServer) two methods for external use:
 
-* start() - Start the main server loop.  This call will block until server execution is interrupted by:
+* start(background=False) - Start the main server loop.  If background=False, this call will block until server execution is interrupted by:
     - KeyboardInterrupt for a server running in a console.
     - The process receives a SIGTERM or SIGHUP signal for platforms that support signals and handle_signals_ is **True**
     - A running thread signals the server to stop.

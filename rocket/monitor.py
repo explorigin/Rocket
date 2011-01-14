@@ -19,10 +19,13 @@ class Monitor(Thread):
                  monitor_queue,
                  active_queue,
                  timeout,
+                 threadpool,
                  *args,
                  **kwargs):
 
         Thread.__init__(self, *args, **kwargs)
+        
+        self._threadpool = threadpool
 
         # Instance Variables
         self.monitor_queue = monitor_queue
@@ -36,19 +39,18 @@ class Monitor(Thread):
         self.active = False
 
     def run(self):
-        self.name = self.getName()
-
         self.active = True
         conn_list = list()
         list_changed = False
 
         if __debug__:
             self.log.debug('Entering monitor loop.')
-
+            
         # Enter thread main loop
         while self.active:
+        
             # Move the queued connections to the selection pool
-            while not self.monitor_queue.empty() or not len(self.connections):
+            while not self.monitor_queue.empty():
                 if __debug__:
                     self.log.debug('In "receive timed-out connections" loop.')
 
@@ -83,10 +85,14 @@ class Monitor(Thread):
                 list_changed = False
 
             try:
-                readable = select.select(conn_list,
-                                         [],
-                                         [],
-                                         THREAD_STOP_CHECK_INTERVAL)[0]
+                if len(conn_list):
+                    readable = select.select(conn_list,
+                                             [],
+                                             [],
+                                             THREAD_STOP_CHECK_INTERVAL)[0]
+                else:
+                    time.sleep(THREAD_STOP_CHECK_INTERVAL)
+                    readable = []
             except:
                 if self.active:
                     raise
@@ -134,10 +140,14 @@ class Monitor(Thread):
                         c.close()
                     finally:
                         del c
+                        
+            # Dynamically resize the threadpool to adapt to our changing needs.
+            self._threadpool.dynamic_resize()
 
+            
     def stop(self):
         self.active = False
-
+        
         if __debug__:
             self.log.debug('Flushing waiting connections')
             

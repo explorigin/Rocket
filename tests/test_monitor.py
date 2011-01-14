@@ -17,7 +17,7 @@ except ImportError:
     from Queue import Queue
 
 # Import Custom Modules
-from rocket import monitor, listener, connection
+from rocket import monitor, listener, connection, threadpool, worker
 
 # Constants
 
@@ -26,8 +26,17 @@ class MonitorTest(unittest.TestCase):
     def setUp(self):
         self.active_queue = Queue()
         self.monitor_queue = Queue()
-        self.timeout = 1
+        self.timeout = 10
         self.interface = ("127.0.0.1", 45453)
+        self.min_threads = 10
+        self.max_threads = 20
+        w = worker.Worker
+        self.tp = threadpool.ThreadPool(w,
+                                        dict(),
+                                        self.active_queue, 
+                                        self.monitor_queue,
+                                        self.min_threads,
+                                        self.max_threads)
 
     def _waitForEqual(self, a, b):
         attempts = 20
@@ -35,7 +44,6 @@ class MonitorTest(unittest.TestCase):
             if isinstance(a, (types.FunctionType, types.MethodType)):
                 _a = a()
             else:
-                print type(a)
                 _a = a
             if isinstance(b, (types.FunctionType, types.MethodType)):
                 _b = b()
@@ -50,7 +58,8 @@ class MonitorTest(unittest.TestCase):
     def testNotActive(self):
         self.monitor = monitor.Monitor(self.monitor_queue,
                                        self.active_queue,
-                                       self.timeout)
+                                       self.timeout,
+                                       self.tp)
 
         self.assert_(not self.monitor.active)
 

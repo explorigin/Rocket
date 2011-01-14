@@ -68,16 +68,18 @@ class Rocket(object):
         self.monitor_queue = Queue()
         self.active_queue = Queue()
 
-        self._monitor = Monitor(self.monitor_queue,
-                                self.active_queue,
-                                timeout)
-
         self._threadpool = ThreadPool(get_method(method),
                                       app_info = app_info,
                                       active_queue = self.active_queue,
                                       monitor_queue = self.monitor_queue,
                                       min_threads = min_threads,
                                       max_threads = max_threads)
+
+        self._monitor = Monitor(self.monitor_queue,
+                                self.active_queue,
+                                timeout,
+                                self._threadpool)
+
 
         # Build our socket listeners
         self.listeners = [Listener(i, queue_size, self.active_queue) for i in self.interfaces]
@@ -128,22 +130,16 @@ class Rocket(object):
             l.start()
 
         if background:
-            # background is undocumented because it disables dynamic resizing 
-            # of the threadpool.  It's mainly there to facilitate testing.
             return
 
-        tp = self._threadpool
-        dynamic_resize = tp.dynamic_resize
-
-        while not tp.stop_server:
+        while self._monitor.isAlive():
             try:
-                dynamic_resize()
                 time.sleep(THREAD_STOP_CHECK_INTERVAL)
             except KeyboardInterrupt:
                 # Capture a keyboard interrupt when running from a console
                 break
             except:
-                if not tp.stop_server:
+                if self._monitor.isAlive():
                     log.error(str(traceback.format_exc()))
                     continue
 
