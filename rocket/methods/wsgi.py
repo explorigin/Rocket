@@ -218,7 +218,7 @@ class WSGIWorker(Worker):
             self.err_log.debug('Getting sock_file')
 
         # Build our file-like object
-        sock_file = conn.makefile('rb', BUF_SIZE)
+        sock_file = conn.makefile(BUF_SIZE)
 
         try:
             # Read the headers and build our WSGI environment

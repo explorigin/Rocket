@@ -12,7 +12,7 @@ try:
     has_ssl = True
 except ImportError:
     has_ssl = False
-from . import IS_JYTHON, SOCKET_TIMEOUT, BUF_SIZE
+from . import IS_JYTHON, SOCKET_TIMEOUT, BUF_SIZE, b
 
 class Connection(object):
     __slots__ = [
@@ -53,16 +53,12 @@ class Connection(object):
         self.sendall = self.socket.sendall
         self.shutdown = self.socket.shutdown
         self.fileno = self.socket.fileno
-        #self.makefile = self.socket.makefile
         self.setblocking = self.socket.setblocking
         self.recv = self.socket.recv
         self.send = self.socket.send
     
-    def makefile(self, mode='rb', buf_size=BUF_SIZE):
-        newconn = Connection((self.socket, (self.client_addr, self.client_port)),
-                             self.server_port,
-                             self.secure)
-        return FileLikeSocket(newconn, mode, buf_size)
+    def makefile(self, buf_size=BUF_SIZE):
+        return FileLikeSocket(self, buf_size)
 
     def close(self):
         if hasattr(self.socket, '_sock'):
@@ -77,15 +73,34 @@ class Connection(object):
         self.socket.close()
 
 class FileLikeSocket(object):
-    def __init__(self, conn, mode='rb', buf_size=BUF_SIZE):
-        self.closed = False
+    def __init__(self, conn, buf_size=BUF_SIZE):
         self.conn = conn
-        self.mode = mode
         self.buf_size = buf_size
+        self.content_length = None
         
-        self.read = conn.recv
-        self.write = conn.send
+    def __iter__(self):
+        return self
+        
+    def next(self):
+        data = self.readline()
+        if data == '':
+            raise StopIteration
+        return data
     
+    def read(self, length=None):
+        if length is None:
+            if self.content_length is not None:
+                length = self.content_length
+            else:
+                length = 1
+            
+        try:
+            data = self.conn.recv(length)
+        except:
+            data = b('')
+        
+        return data
+
     def readline(self):
         data = ""
         char = self.read(1)
@@ -96,22 +111,9 @@ class FileLikeSocket(object):
         data += char
         return data
 
-    def readlines(self):
-        line = self.readline()
-        while line is not '':
-            print line
-            yield line
-            line = self.readline()
-        raise StopIteration
+    def readlines(self, hint="ignored"):
+        return list(self)
 
-    def writelines(self, iter):
-        for line in iter:
-            self.write(line)
-
-    def flush(self):
-        pass
-    
     def close(self):
-        self.closed = True
         self.conn = None
-
+        self.content_length = None
