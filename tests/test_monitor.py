@@ -20,14 +20,18 @@ except ImportError:
 from rocket import monitor, listener, connection, threadpool, worker
 
 # Constants
+SERVER_PORT = 45454
 
 # Define Tests
 class MonitorTest(unittest.TestCase):
     def setUp(self):
+        global SERVER_PORT
+
+        SERVER_PORT += 1
         self.active_queue = Queue()
         self.monitor_queue = Queue()
         self.timeout = 10
-        self.interface = ("127.0.0.1", 45453)
+        self.interface = ("127.0.0.1", SERVER_PORT)
         self.min_threads = 10
         self.max_threads = 20
         w = worker.Worker
@@ -74,7 +78,7 @@ class MonitorTest(unittest.TestCase):
 
         # Create a socket connecting to listener's port
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
+        sock.settimeout(15)
         sock.connect(self.interface)
 
         # Verify that listener put it in the active queue

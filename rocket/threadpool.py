@@ -50,6 +50,7 @@ class ThreadPool:
         self.app_info = app_info
 
         self.threads = set()
+
         self.grow(min_threads, start=False)
 
     def start(self):
@@ -107,7 +108,8 @@ class ThreadPool:
         if not amount:
             amount = self.max_threads
 
-        amount = min([amount, self.max_threads - len(self.threads)])
+        if self.alive:
+            amount = min([amount, self.max_threads - len(self.threads)])
         
         if __debug__:
             log.debug("Growing by %i." % amount)

@@ -147,6 +147,8 @@ class ThreadPoolTest(unittest.TestCase):
         for x in range(self.max_threads * 3):
             self.active_queue.put(None)
         
+        self.tp.alive = True
+
         self.tp.dynamic_resize()
 
         self.assert_(self.min_threads < len(self.tp.threads) < self.max_threads + 1)
