@@ -145,7 +145,7 @@ class Rocket(object):
 
         return self.stop()
 
-    def stop(self, stoplogging = True):
+    def stop(self, stoplogging = False):
         log.info("Stopping Server")
 
         # Stop listeners
@@ -164,9 +164,17 @@ class Rocket(object):
 
         if stoplogging:
             logging.shutdown()
+            msg = "Calling logging.shutdown() is now the responsibility of \
+                   the application developer.  Please update your \
+                   applications to no longer call rocket.stop(True)"
+            try:
+                import warnings
+                raise warnings.DeprecationWarning(msg)
+            except ImportError:
+                raise RuntimeError(msg)
 
     def restart(self):
-        self.stop(False)
+        self.stop()
         self.start()
 
 def CherryPyWSGIServer(bind_addr,

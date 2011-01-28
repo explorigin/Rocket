@@ -165,11 +165,14 @@ An instance of Rocket (or CherryPyWSGIServer) two methods for external use:
 
 .. _stop:
 
-* stop(stoplogging=True) - This method will:
+* stop(stoplogging=False) - This method will:
     - timeout and close all active connections
     - stop all worker and monitor threads
-    - if the *stoplogging* parameter is set to **False**, all logging objects will be preserved should the server be restarted.
+    - the *stoplogging* parameter is `DEPRECATED` and defaults to **False**.  Passing **True**, will call `logging.shutdown()`_ and raise a DeprecationWarning when debugging_ mode is enabled.  Calling logging.shutdown() is the responsibility of the application developer.
 
+.. _logging.shutdown(): http://docs.python.org/library/logging.html#logging.shutdown
+
+    
 Architecture Considerations
 ===========================
 
