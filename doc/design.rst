@@ -7,7 +7,7 @@ The class design of Rocket consists of one or more listener_ threads, a `connect
 Listener
 ========
 
-There is a listener thread for each socket Rocket listens on.  Each thread handles setup of the its socket enters into a connection accept loop.  Once it has accepted a connection, it puts it in the *active* queue to be processed by a worker.
+There is a listener thread for each socket Rocket listens on.  Each thread handles setup of its socket and enters into a connection accept loop.  Once it has accepted a connection, it puts it in the *active* queue to be processed by a worker.
 
 Connection Monitor
 ==================
@@ -31,3 +31,8 @@ The Worker class is the class to inherit from when extending Rocket.  While Work
 .. _WSGIWorker: development.html#wsgiworker
 
 .. _timeout: usage.html#timeout
+
+Connection
+==========
+
+The Connection class wraps a socket connection and provides a buffered file-like interface to the socket.  It also remembers useful information like if this socket is secure, the creation time-stamp and other helpful information.

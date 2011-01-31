@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2011 Timothy Farrell
 
 # Import System Modules
 import sys
 import socket
 from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
+
 # Import Package Modules
 from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
+from .wsgifutures import WSGIExecutor
 
 if PY3K:
     from email.utils import formatdate
@@ -44,12 +46,17 @@ class WSGIWorker(Worker):
                                   'wsgi.multithread': multithreaded,
                                   })
         self.base_environ.update(BASE_ENV)
+
         # Grab our application
         self.app = self.app_info.get('wsgi_app')
 
         if not hasattr(self.app, "__call__"):
             raise TypeError("The wsgi_app specified (%s) is not a valid WSGI application." % repr(self.app))
 
+        # Enable futures
+        if has_futures and self.app_info.get('futures'):
+            self.base_environ.update({"wsgiorg.executor":None,
+                                      "wsgiorg.futures":dict()})
 
     def build_environ(self, sock_file, conn):
         """ Build the execution environment. """
@@ -262,3 +269,4 @@ class WSGIWorker(Worker):
                 output.close()
 
             sock_file.close()
+

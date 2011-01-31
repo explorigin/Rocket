@@ -13,6 +13,7 @@ Welcome to Rocket's documentation!
    usage
    methods
    design
+   extras
    development
    acknowledgements
    license
