@@ -24,7 +24,7 @@ class Monitor(Thread):
                  **kwargs):
 
         Thread.__init__(self, *args, **kwargs)
-        
+
         self._threadpool = threadpool
 
         # Instance Variables
@@ -45,10 +45,10 @@ class Monitor(Thread):
 
         if __debug__:
             self.log.debug('Entering monitor loop.')
-            
+
         # Enter thread main loop
         while self.active:
-        
+
             # Move the queued connections to the selection pool
             while not self.monitor_queue.empty():
                 if __debug__:
@@ -79,7 +79,6 @@ class Monitor(Thread):
                 list_changed = True
 
             # Wait on those connections
-            self.log.debug('Blocking on connections')
             if list_changed:
                 conn_list = list(self.connections)
                 list_changed = False
@@ -115,7 +114,7 @@ class Monitor(Thread):
 
                 r.start_time = time.time()
                 self.active_queue.put(r)
-                
+
                 self.connections.remove(r)
                 list_changed = True
 
@@ -135,22 +134,22 @@ class Monitor(Thread):
 
                     self.connections.remove(c)
                     list_changed = True
-                    
+
                     try:
                         c.close()
                     finally:
                         del c
-                        
+
             # Dynamically resize the threadpool to adapt to our changing needs.
             self._threadpool.dynamic_resize()
 
-            
+
     def stop(self):
         self.active = False
-        
+
         if __debug__:
             self.log.debug('Flushing waiting connections')
-            
+
         for c in self.connections:
             try:
                 c.close()
@@ -159,10 +158,10 @@ class Monitor(Thread):
 
         if __debug__:
             self.log.debug('Flushing queued connections')
-            
+
         while not self.monitor_queue.empty():
             c = self.monitor_queue.get()
-            
+
             if c is None:
                 continue
 

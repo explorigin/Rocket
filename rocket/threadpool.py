@@ -7,6 +7,7 @@
 import logging
 # Import Package Modules
 from . import DEFAULTS, NullHandler
+from .futures import has_futures, WSGIExecutor
 
 # Setup Logging
 log = logging.getLogger('Rocket.Errors.ThreadPool')
@@ -37,16 +38,20 @@ class ThreadPool:
         self.monitor_queue = monitor_queue
         self.stop_server = False
         self.alive = False
-        
+
         # TODO - Optimize this based on some real-world usage data
         self.grow_threshold = int(max_threads/10) + 2
 
         if not isinstance(app_info, dict):
             app_info = dict()
 
+        if has_futures and app_info.get('futures'):
+            app_info['executor'] = WSGIExecutor(max([DEFAULTS['MIN_THREADS'],
+                                                     2]))
+
         app_info.update(max_threads=max_threads,
                         min_threads=min_threads)
-        
+
         self.app_info = app_info
 
         self.threads = set()
@@ -57,22 +62,29 @@ class ThreadPool:
         self.stop_server = False
         if __debug__:
             log.debug("Starting threads.")
-            
+
         for thread in self.threads:
             thread.start()
-            
+
         self.alive = True
 
     def stop(self):
         self.alive = False
-        
+
         if __debug__:
             log.debug("Stopping threads.")
-            
+
         self.stop_server = True
 
         # Prompt the threads to die
         self.shrink(len(self.threads))
+
+        # Stop futures initially
+        if has_futures and self.app_info.get('futures'):
+            if __debug__:
+                log.debug("Future executor is present.  Python will not "
+                          "exit until all jobs have finished.")
+            self.app_info['executor'].shutdown(wait=False)
 
         # Give them the gun
         for t in self.threads:
@@ -110,7 +122,7 @@ class ThreadPool:
 
         if self.alive:
             amount = min([amount, self.max_threads - len(self.threads)])
-        
+
         if __debug__:
             log.debug("Growing by %i." % amount)
 

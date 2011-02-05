@@ -12,7 +12,7 @@ from wsgiref.util import FileWrapper
 # Import Package Modules
 from .. import HTTP_SERVER_SOFTWARE, SERVER_NAME, b, BUF_SIZE, PY3K
 from ..worker import Worker, ChunkedReader
-from .wsgifutures import WSGIExecutor
+from ..futures import has_futures
 
 if PY3K:
     from email.utils import formatdate
@@ -55,8 +55,9 @@ class WSGIWorker(Worker):
 
         # Enable futures
         if has_futures and self.app_info.get('futures'):
-            self.base_environ.update({"wsgiorg.executor":None,
-                                      "wsgiorg.futures":dict()})
+            executor = self.app_info['executor']
+            self.base_environ.update({"wsgiorg.executor": executor,
+                                      "wsgiorg.futures": executor.futures})
 
     def build_environ(self, sock_file, conn):
         """ Build the execution environment. """
@@ -269,4 +270,3 @@ class WSGIWorker(Worker):
                 output.close()
 
             sock_file.close()
-
