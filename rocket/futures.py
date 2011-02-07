@@ -99,3 +99,14 @@ class WSGIExecutor(ThreadPoolExecutor):
             return f
         else:
             return False
+
+class FuturesMiddleware(object):
+    "Futures middleware that adds a Futures Executor to the environment"
+    def __init__(self, app, threads=5):
+        self.app = app
+        self.executor = WSGIExecutor(threads)
+
+    def __call__(self, environ, start_response):
+        environ["wsgiorg.executor"] = self.executor
+        environ["wsgiorg.futures"] = self.executor.futures
+        return self.app(environ, start_response)
