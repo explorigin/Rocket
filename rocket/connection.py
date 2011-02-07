@@ -99,7 +99,9 @@ class FileLikeSocket(object):
         while True:
             try:
                 return self.conn.recv(size)
-            except socket.error, e:
+            except socket.error:
+                exc = sys.exc_info()
+                e = exc[1]
                 if (e.args[0] not in set() # socket_errors_nonblocking # FIXME
                     and e.args[0] not in set()): # socket_error_eintr): #FIXME
                     raise
@@ -170,9 +172,9 @@ class FileLikeSocket(object):
         return data
 
     def readline(self):
-        data = ""
+        data = b("")
         char = self.read(1)
-        while char != '\n' and char is not '':
+        while char != b('\n') and char is not b(''):
             line = repr(char)
             data += char
             char = self.read(1)

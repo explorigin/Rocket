@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from rocket import Rocket
+from rocket import Rocket, b
 from cgi import parse_qs
 import time
 
@@ -30,7 +30,7 @@ def wsgiapp(environ, start_response):
 
     if 'wsgiorg.executor' not in environ:
         start_response('200 OK', [('Content-Type', 'text/html')])
-        return ["futures not supported"]
+        return [b("futures not supported")]
     else:
         executor = environ['wsgiorg.executor']
         futures = environ['wsgiorg.futures']
@@ -64,7 +64,7 @@ def wsgiapp(environ, start_response):
 
 
     start_response('200 OK', [('Content-Type', 'text/html')])
-    return [data]
+    return [b(data)]
 
 
 if __name__ == '__main__':
