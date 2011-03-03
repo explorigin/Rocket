@@ -9,7 +9,7 @@ import time
 import socket
 import logging
 import traceback
-
+from threading import Lock
 try:
     from queue import Queue
 except ImportError:
@@ -41,6 +41,7 @@ class Rocket(object):
                  handle_signals = True):
 
         self.handle_signals = handle_signals
+        self.startstop_lock = Lock()
 
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
@@ -102,32 +103,38 @@ class Rocket(object):
     def start(self, background=False):
         log.info('Starting %s' % SERVER_SOFTWARE)
 
-        # Set up our shutdown signals
-        if self.handle_signals:
-            try:
-                import signal
-                signal.signal(signal.SIGTERM, self._sigterm)
-                signal.signal(signal.SIGUSR1, self._sighup)
-            except:
-                log.debug('This platform does not support signals.')
+        self.startstop_lock.acquire()
 
-        # Start our worker threads
-        self._threadpool.start()
+        try:
+            # Set up our shutdown signals
+            if self.handle_signals:
+                try:
+                    import signal
+                    signal.signal(signal.SIGTERM, self._sigterm)
+                    signal.signal(signal.SIGUSR1, self._sighup)
+                except:
+                    log.debug('This platform does not support signals.')
 
-        # Start our monitor thread
-        self._monitor.setDaemon(True)
-        self._monitor.start()
+            # Start our worker threads
+            self._threadpool.start()
 
-        # I know that EXPR and A or B is bad but I'm keeping it for Py2.4
-        # compatibility.
-        str_extract = lambda l: (l.addr, l.port, l.secure and '*' or '')
+            # Start our monitor thread
+            self._monitor.setDaemon(True)
+            self._monitor.start()
 
-        msg = 'Listening on sockets: '
-        msg += ', '.join(['%s:%i%s' % str_extract(l) for l in self.listeners])
-        log.info(msg)
+            # I know that EXPR and A or B is bad but I'm keeping it for Py2.4
+            # compatibility.
+            str_extract = lambda l: (l.addr, l.port, l.secure and '*' or '')
 
-        for l in self.listeners:
-            l.start()
+            msg = 'Listening on sockets: '
+            msg += ', '.join(['%s:%i%s' % str_extract(l) for l in self.listeners])
+            log.info(msg)
+
+            for l in self.listeners:
+                l.start()
+
+        finally:
+            self.startstop_lock.release()
 
         if background:
             return
@@ -148,30 +155,36 @@ class Rocket(object):
     def stop(self, stoplogging = False):
         log.info("Stopping Server")
 
-        # Stop listeners
-        for l in self.listeners:
-            l.ready = False
-            if l.isAlive():
-                l.join()
+        self.startstop_lock.acquire()
 
-        # Stop Worker threads
-        self._threadpool.stop()
+        try:
+            # Stop listeners
+            for l in self.listeners:
+                l.ready = False
+                if l.isAlive():
+                    l.join()
 
-        # Stop Monitor
-        self._monitor.stop()
-        if self._monitor.isAlive():
-            self._monitor.join()
+            # Stop Worker threads
+            self._threadpool.stop()
 
-        if stoplogging:
-            logging.shutdown()
-            msg = "Calling logging.shutdown() is now the responsibility of \
-                   the application developer.  Please update your \
-                   applications to no longer call rocket.stop(True)"
-            try:
-                import warnings
-                raise warnings.DeprecationWarning(msg)
-            except ImportError:
-                raise RuntimeError(msg)
+            # Stop Monitor
+            self._monitor.stop()
+            if self._monitor.isAlive():
+                self._monitor.join()
+
+            if stoplogging:
+                logging.shutdown()
+                msg = "Calling logging.shutdown() is now the responsibility of \
+                       the application developer.  Please update your \
+                       applications to no longer call rocket.stop(True)"
+                try:
+                    import warnings
+                    raise warnings.DeprecationWarning(msg)
+                except ImportError:
+                    raise RuntimeError(msg)
+
+        finally:
+            self.startstop_lock.release()
 
     def restart(self):
         self.stop()
