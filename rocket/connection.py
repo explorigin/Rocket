@@ -66,7 +66,9 @@ class Connection(object):
         self.send = self.socket.send
 
     def makefile(self, buf_size=BUF_SIZE):
-        return FileLikeSocket(self, buf_size)
+        # TODO: Not quite ready for this to go into production.
+        #return FileLikeSocket(self, buf_size)
+        return self.socket.makefile('rb', buf_size)
 
     def close(self):
         if hasattr(self.socket, '_sock'):
@@ -74,7 +76,7 @@ class Connection(object):
                 self.socket._sock.close()
             except socket.error:
                 info = sys.exc_info()
-                if info[1].errno != socket.EBADF:
+                if info[1].args[0] != socket.EBADF:
                     raise info[1]
                 else:
                     pass

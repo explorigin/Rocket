@@ -37,7 +37,7 @@ class ListenerTest(unittest.TestCase):
     def setUp(self):
         global SERVER_PORT
         global SECURE_SERVER_PORT
-        
+
         SERVER_PORT += 1
         SECURE_SERVER_PORT += 1
         self.active_queue = Queue()
@@ -49,10 +49,10 @@ class ListenerTest(unittest.TestCase):
                                      PRIV_KEY_FILE,
                                      PUB_KEY_FILE)
             if not os.path.exists(PRIV_KEY_FILE):
-                print "Could not find private key file: "+ os.path.abspath(PRIV_KEY_FILE)
+                print "Could not find private key file: " + os.path.abspath(PRIV_KEY_FILE)
                 self.has_ssl = False
             if not os.path.exists(PUB_KEY_FILE):
-                print "Could not find public key file: "+ os.path.abspath(PUB_KEY_FILE)
+                print "Could not find public key file: " + os.path.abspath(PUB_KEY_FILE)
                 self.has_ssl = False
 
     def _waitForEqual(self, a, b):
@@ -157,7 +157,7 @@ class ListenerTest(unittest.TestCase):
                 pass
             finally:
                 self.sec_listener = None
-        
+
         time.sleep(0.25)
 
 if __name__ == '__main__':

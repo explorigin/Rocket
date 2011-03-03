@@ -92,31 +92,32 @@ class Monitor(Thread):
                 else:
                     time.sleep(THREAD_STOP_CHECK_INTERVAL)
                     readable = []
+
+                if not self.active:
+                    break
+
+                # If we have any readable connections, put them back
+                for r in readable:
+                    if __debug__:
+                        self.log.debug('Restoring readable connection')
+
+                    if IS_JYTHON:
+                        # Jython requires a socket to be in Non-blocking mode in
+                        # order to select on it, but the rest of the code requires
+                        # that it be in blocking mode.
+                        r.setblocking(True)
+
+                    r.start_time = time.time()
+                    self.active_queue.put(r)
+
+                    self.connections.remove(r)
+                    list_changed = True
+
             except:
                 if self.active:
                     raise
                 else:
                     break
-
-            if not self.active:
-                break
-
-            # If we have any readable connections, put them back
-            for r in readable:
-                if __debug__:
-                    self.log.debug('Restoring readable connection')
-
-                if IS_JYTHON:
-                    # Jython requires a socket to be in Non-blocking mode in
-                    # order to select on it, but the rest of the code requires
-                    # that it be in blocking mode.
-                    r.setblocking(True)
-
-                r.start_time = time.time()
-                self.active_queue.put(r)
-
-                self.connections.remove(r)
-                list_changed = True
 
             # If we have any stale connections, kill them off.
             if self.timeout:
@@ -150,7 +151,8 @@ class Monitor(Thread):
         if __debug__:
             self.log.debug('Flushing waiting connections')
 
-        for c in self.connections:
+        while self.connections:
+            c = self.connections.pop()
             try:
                 c.close()
             finally:
