@@ -215,14 +215,14 @@ class Worker(Thread):
             self.err_log.error('Tried to send "%s" to client but received socket'
                            ' error' % status)
 
-    def kill(self):
-        if self.isAlive() and hasattr(self, 'conn'):
-            try:
-                self.conn.shutdown(socket.SHUT_RDWR)
-            except socket.error:
-                info = sys.exc_info()
-                if info[1].args[0] != socket.EBADF:
-                    self.err_log.debug('Error on shutdown: '+str(info))
+    #def kill(self):
+    #    if self.isAlive() and hasattr(self, 'conn'):
+    #        try:
+    #            self.conn.shutdown(socket.SHUT_RDWR)
+    #        except socket.error:
+    #            info = sys.exc_info()
+    #            if info[1].args[0] != socket.EBADF:
+    #                self.err_log.debug('Error on shutdown: '+str(info))
 
     def read_request_line(self, sock_file):
         self.request_line = ''

@@ -20,7 +20,7 @@ The *wsgi* method is implemented by the WSGIWorker class.
 The *app_info* property for the WSGIWorker should be a dictionary containing the following:
 
 * wsgi_app: an instance of the WSGI application Rocket should serve.
-* futures: a boolean value to include experimental futures_ environment variables.  See below for more details.
+* futures: a boolean value to include experimental futures environment variables.  See extras_ for more details.
 
 .. _WSGIWorker_environment_variables:
 
@@ -33,7 +33,7 @@ Rocket provides the following environment variables to applications that it runs
 *Since Rocket does not currently support HTTP-authentication, REMOTE_USER is never provided.*
 
 * **wsgiorg.executor**
-* **wsgiorg.futures** - These two environment variables are provide if, Rocket is running on a Python distribution that includes futures and the futures_ option in app_info is explicitly set to **True**.
+* **wsgiorg.futures** - These two environment variables are provide if, Rocket is running on a Python distribution that includes futures and the futures option in app_info is explicitly set to **True**.
 
 .. _Worker: design.html#worker
 .. _app_info: usage.html#app-info

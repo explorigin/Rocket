@@ -87,10 +87,10 @@ class ThreadPool:
             self.app_info['executor'].shutdown(wait=False)
 
         # Give them the gun
-        active_threads = [t for t in self.threads if t.isAlive()]
-        while active_threads:
-            t = active_threads.pop()
-            t.kill()
+        #active_threads = [t for t in self.threads if t.isAlive()]
+        #while active_threads:
+        #    t = active_threads.pop()
+        #    t.kill()
 
         # Wait until they pull the trigger
         for t in self.threads:

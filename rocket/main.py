@@ -153,7 +153,7 @@ class Rocket(object):
         return self.stop()
 
     def stop(self, stoplogging = False):
-        log.info("Stopping Server")
+        log.info('Stopping %s' % SERVER_SOFTWARE)
 
         self.startstop_lock.acquire()
 
@@ -161,16 +161,23 @@ class Rocket(object):
             # Stop listeners
             for l in self.listeners:
                 l.ready = False
+
+            # Encourage a context switch
+            time.sleep(0.01)
+
+            for l in self.listeners:
                 if l.isAlive():
                     l.join()
 
-            # Stop Worker threads
-            self._threadpool.stop()
+                l.ready = True
 
             # Stop Monitor
             self._monitor.stop()
             if self._monitor.isAlive():
                 self._monitor.join()
+
+            # Stop Worker threads
+            self._threadpool.stop()
 
             if stoplogging:
                 logging.shutdown()

@@ -43,6 +43,10 @@ class Monitor(Thread):
         conn_list = list()
         list_changed = False
 
+        # We need to make sure the queue is empty before we start
+        while not self.monitor_queue.empty():
+            self.monitor_queue.get()
+
         if __debug__:
             self.log.debug('Entering monitor loop.')
 
@@ -60,7 +64,8 @@ class Monitor(Thread):
                     # A non-client is a signal to die
                     if __debug__:
                         self.log.debug('Received a death threat.')
-                    return
+                    self.stop()
+                    break
 
                 self.log.debug('Received a timed out connection.')
 

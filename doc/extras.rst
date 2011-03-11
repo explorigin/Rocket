@@ -13,6 +13,8 @@ Extras are extensions available for certain methods in Rocket. Currently there i
 Futures
 =======
 
+** EXPERIMENTAL **
+
 Abstract
 --------
 

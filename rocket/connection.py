@@ -66,9 +66,7 @@ class Connection(object):
         self.send = self.socket.send
 
     def makefile(self, buf_size=BUF_SIZE):
-        # TODO: Not quite ready for this to go into production.
-        #return FileLikeSocket(self, buf_size)
-        return self.socket.makefile('rb', buf_size)
+        return FileLikeSocket(self, buf_size)
 
     def close(self):
         if hasattr(self.socket, '_sock'):
@@ -104,8 +102,8 @@ class FileLikeSocket(object):
             except socket.error:
                 exc = sys.exc_info()
                 e = exc[1]
-                if (e.args[0] not in set() # socket_errors_nonblocking # FIXME
-                    and e.args[0] not in set()): # socket_error_eintr): #FIXME
+                # FIXME - Don't raise socket_errors_nonblocking or socket_error_eintr
+                if (e.args[0] not in set()):
                     raise
 
     def next(self):
