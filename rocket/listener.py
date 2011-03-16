@@ -36,6 +36,7 @@ class Listener(Thread):
         self.secure = len(interface) == 4 and \
                       os.path.exists(interface[2]) and \
                       os.path.exists(interface[3])
+        self.thread = None
         self.ready = False
 
         # Error Log
@@ -112,12 +113,38 @@ class Listener(Thread):
         
         return sock
 
-
-    def run(self):
+    def start(self):
         if not self.ready:
             self.err_log.warning('Listener started when not ready.')
             return
+            
+        if self.thread is not None and self.thread.isAlive():
+            self.err_log.warning('Listener already running.')
+            return
+            
+        self.thread = Thread(target=self.listen, name="Port" + str(self.port))
+        
+        self.thread.start()
+    
+    def isAlive(self):
+        if self.thread is None:
+            return False
+        
+        return self.thread.isAlive()
 
+    def join(self):
+        if self.thread is None:
+            return
+            
+        self.ready = False
+        
+        self.thread.join()
+        
+        del self.thread
+        self.thread = None
+        self.ready = True
+    
+    def listen(self):
         if __debug__:
             self.err_log.debug('Entering main loop.')
         while True:

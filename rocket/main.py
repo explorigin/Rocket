@@ -42,6 +42,7 @@ class Rocket(object):
 
         self.handle_signals = handle_signals
         self.startstop_lock = Lock()
+        self.timeout = timeout
 
         if not isinstance(interfaces, list):
             self.interfaces = [interfaces]
@@ -75,12 +76,6 @@ class Rocket(object):
                                       monitor_queue = self.monitor_queue,
                                       min_threads = min_threads,
                                       max_threads = max_threads)
-
-        self._monitor = Monitor(self.monitor_queue,
-                                self.active_queue,
-                                timeout,
-                                self._threadpool)
-
 
         # Build our socket listeners
         self.listeners = [Listener(i, queue_size, self.active_queue) for i in self.interfaces]
@@ -119,6 +114,10 @@ class Rocket(object):
             self._threadpool.start()
 
             # Start our monitor thread
+            self._monitor = Monitor(self.monitor_queue,
+                                    self.active_queue,
+                                    self.timeout,
+                                    self._threadpool)
             self._monitor.setDaemon(True)
             self._monitor.start()
 
@@ -156,7 +155,7 @@ class Rocket(object):
         log.info('Stopping %s' % SERVER_SOFTWARE)
 
         self.startstop_lock.acquire()
-
+        
         try:
             # Stop listeners
             for l in self.listeners:
@@ -168,8 +167,6 @@ class Rocket(object):
             for l in self.listeners:
                 if l.isAlive():
                     l.join()
-
-                l.ready = True
 
             # Stop Monitor
             self._monitor.stop()

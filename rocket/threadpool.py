@@ -52,19 +52,17 @@ class ThreadPool:
         app_info.update(max_threads=max_threads,
                         min_threads=min_threads)
 
+        self.min_threads = min_threads
         self.app_info = app_info
 
         self.threads = set()
-
-        self.grow(min_threads, start=False)
 
     def start(self):
         self.stop_server = False
         if __debug__:
             log.debug("Starting threads.")
 
-        for thread in self.threads:
-            thread.start()
+        self.grow(self.min_threads)
 
         self.alive = True
 
@@ -114,7 +112,7 @@ class ThreadPool:
                 pass
         self.check_for_dead_threads -= len(dead_threads)
 
-    def grow(self, amount=None, start=True):
+    def grow(self, amount=None):
         if self.stop_server:
             return
 
@@ -134,8 +132,7 @@ class ThreadPool:
 
             worker.setDaemon(True)
             self.threads.add(worker)
-            if start:
-                worker.start()
+            worker.start()
 
     def shrink(self, amount=1):
         if __debug__:
