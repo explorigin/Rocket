@@ -315,34 +315,38 @@ class Worker(Thread):
 
 
     def read_headers(self, sock_file):
-        headers = dict()
-        l = sock_file.readline()
-
-        lname = None
-        lval = None
-        while True:
-            if PY3K:
-                try:
-                    l = str(l, 'ISO-8859-1')
-                except UnicodeDecodeError:
-                    self.err_log.warning('Client sent invalid header: ' + repr(l))
-
-            if l == '\r\n':
-                break
-
-            if l[0] in ' \t' and lname:
-                # Some headers take more than one line
-                lval += ',' + l.strip()
-            else:
-                # HTTP header values are latin-1 encoded
-                l = l.split(':', 1)
-                # HTTP header names are us-ascii encoded
-
-                lname = l[0].strip().upper().replace('-', '_')
-                lval = l[-1].strip()
-            headers[str(lname)] = str(lval)
-
+        try:
+            headers = dict()
             l = sock_file.readline()
+    
+            lname = None
+            lval = None
+            while True:
+                if PY3K:
+                    try:
+                        l = str(l, 'ISO-8859-1')
+                    except UnicodeDecodeError:
+                        self.err_log.warning('Client sent invalid header: ' + repr(l))
+    
+                if l == '\r\n':
+                    break
+    
+                if l[0] in ' \t' and lname:
+                    # Some headers take more than one line
+                    lval += ',' + l.strip()
+                else:
+                    # HTTP header values are latin-1 encoded
+                    l = l.split(':', 1)
+                    # HTTP header names are us-ascii encoded
+    
+                    lname = l[0].strip().upper().replace('-', '_')
+                    lval = l[-1].strip()
+                headers[str(lname)] = str(lval)
+    
+                l = sock_file.readline()
+        except socket.timeout:
+            raise SocketTimeout("Socket timed out before request.")
+
         return headers
 
 class SocketTimeout(Exception):

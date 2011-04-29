@@ -28,7 +28,7 @@ class ThreadPoolTest(unittest.TestCase):
         w = worker.Worker
         self.tp = threadpool.ThreadPool(w,
                                         dict(),
-                                        self.active_queue, 
+                                        self.active_queue,
                                         self.monitor_queue,
                                         self.min_threads,
                                         self.max_threads)
@@ -37,95 +37,85 @@ class ThreadPoolTest(unittest.TestCase):
         return reduce(lambda x, y: x+y,
                       [1 if x.isAlive() else 0 for x in self.tp.threads],
                       0)
-        
-    def testThreadPoolInit(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
 
     def testThreadPoolStart(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
     def testThreadPoolStop(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
         self.tp.stop()
-        
+
         self.assertEqual(len(self.tp.threads), 0)
 
     def testThreadPoolShrink(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
         self.tp.shrink(1)
-        
+
         # Give the other threads some time to process the death threat
         time.sleep(0.5)
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads - 1)
 
     def testThreadPoolGrow(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
         self.tp.grow(1)
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads + 1)
 
 
     def testThreadPoolDeadThreadCleanup(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
         self.tp.shrink(1)
-        
+
         # Give the other threads some time to process the death threat
         time.sleep(0.5)
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads - 1)
         self.assertEqual(len(self.tp.threads), self.min_threads)
 
         self.tp.bring_out_your_dead()
-        
+
         self.assertEqual(len(self.tp.threads), self.min_threads - 1)
 
     def testThreadPoolDynamicResizeDown(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         self.tp.start()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
 
         self.tp.grow(1)
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads + 1)
         self.assertEqual(len(self.tp.threads), self.min_threads + 1)
 
@@ -133,20 +123,19 @@ class ThreadPoolTest(unittest.TestCase):
 
         # Give the other threads some time to process the death threat
         time.sleep(0.5)
-        
+
         self.tp.bring_out_your_dead()
-        
+
         self.assertEqual(self.aliveConnections(), self.min_threads)
         self.assertEqual(len(self.tp.threads), self.min_threads)
 
     def testThreadPoolDynamicResizeUp(self):
-    
-        self.assertEqual(len(self.tp.threads), self.min_threads)
+
         self.assertEqual(self.aliveConnections(), 0)
-        
+
         for x in range(self.max_threads * 3):
             self.active_queue.put(None)
-        
+
         self.tp.alive = True
 
         self.tp.dynamic_resize()
@@ -158,7 +147,7 @@ class ThreadPoolTest(unittest.TestCase):
             self.tp.stop()
         except:
             pass
-    
+
         del self.tp
 
 if __name__ == '__main__':

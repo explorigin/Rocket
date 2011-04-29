@@ -37,7 +37,7 @@ class MonitorTest(unittest.TestCase):
         w = worker.Worker
         self.tp = threadpool.ThreadPool(w,
                                         dict(),
-                                        self.active_queue, 
+                                        self.active_queue,
                                         self.monitor_queue,
                                         self.min_threads,
                                         self.max_threads)
@@ -85,14 +85,14 @@ class MonitorTest(unittest.TestCase):
         self._waitForEqual(self.active_queue.qsize, 1)
         self.assertEqual(self.active_queue.qsize(), 1)
 
+        self.monitor.start()
+
         # Put it in the monitor queue
         conn = self.active_queue.get()
         conn = connection.Connection(*conn)
         self.monitor_queue.put(conn)
         self._waitForEqual(self.monitor_queue.qsize, 1)
         self.assertEqual(self.monitor_queue.qsize(), 1)
-
-        self.monitor.start()
 
         # Wait for the monitor queue to see it
         self._waitForEqual(self.monitor_queue.qsize, 0)
@@ -134,4 +134,12 @@ class MonitorTest(unittest.TestCase):
             pass
 
 if __name__ == '__main__':
+    #import logging
+    #log = logging.getLogger('Rocket')
+    #log.setLevel(logging.DEBUG)
+    #fmt = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+    #h = logging.StreamHandler()
+    #h.setFormatter(fmt)
+    #log.addHandler(h)
+
     unittest.main()

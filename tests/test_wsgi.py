@@ -21,7 +21,7 @@ except ImportError:
     from Queue import Queue
 
 try:
-    from io import StringIO
+    from io import BytesIO as StringIO
 except ImportError:
     try:
         from cStringIO import StringIO
