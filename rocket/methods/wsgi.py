@@ -226,7 +226,10 @@ class WSGIWorker(Worker):
             self.err_log.debug('Getting sock_file')
 
         # Build our file-like object
-        sock_file = conn.makefile(BUF_SIZE)
+        if PY3K:
+            sock_file = conn.makefile(mode='rb', buffering=BUF_SIZE)
+        else:
+            sock_file = conn.makefile(BUF_SIZE)
 
         try:
             # Read the headers and build our WSGI environment

@@ -98,9 +98,10 @@ class MonitorTest(unittest.TestCase):
         self._waitForEqual(self.monitor_queue.qsize, 0)
         self.assertEqual(self.monitor_queue.qsize(), 0)
 
-        # Send something to the socket to see if it get put back on the active
+        # Send something to the socket to see if it gets put back on the active
         # queue.
         sock.send("test data")
+        sock.close()
 
         # Give monitor a chance to see it
         self._waitForEqual(self.active_queue.qsize, 1)

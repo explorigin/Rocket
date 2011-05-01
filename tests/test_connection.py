@@ -114,6 +114,7 @@ class ConnectionTest(unittest.TestCase):
 
         SENT_DATA = """this is a test\r\nthis is another line\r\n"""
         self.sock.send(SENT_DATA)
+        self.sock.close()
 
         time.sleep(0.25)
 
