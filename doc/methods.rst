@@ -22,6 +22,8 @@ The *app_info* property for the WSGIWorker should be a dictionary containing the
 * wsgi_app: an instance of the WSGI application Rocket should serve.
 * futures: a boolean value to include experimental futures environment variables.  See extras_ for more details.
 
+.. _extras: extras.html
+
 .. _WSGIWorker_environment_variables:
 
 Rocket provides the following environment variables to applications that it runs in addition to WSGI's `standard environment variables <http://www.python.org/dev/peps/pep-0333/#environ-variables>`_:

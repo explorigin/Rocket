@@ -1,5 +1,5 @@
 :Title: wsgiorg.executor
-:Author: Timothy Farrell <tfarrell@owassobible.org>
+:Author: Timothy Farrell <explorigin@gmail.com>
 :Discussions-To: Python Web-SIG <web-sig@python.org>
 :Status: Draft
 :Created: 28-Jan-2011
@@ -110,4 +110,3 @@ Example using futures to generate a report::
     rpt_fut = environ["wsgiorg.executor"].submit(buildReport, data)
     rpt_fut.remember("client-123-report")
     rpt_fut.timeout = 90
-    
