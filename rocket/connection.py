@@ -38,7 +38,7 @@ class Connection(object):
     ]
 
     def __init__(self, sock_tuple, port, secure=False):
-        self.client_addr, self.client_port = sock_tuple[1]
+        self.client_addr, self.client_port = sock_tuple[1][:2]
         self.server_port = port
         self.socket = sock_tuple[0]
         self.start_time = time.time()

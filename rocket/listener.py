@@ -44,7 +44,10 @@ class Listener(Thread):
         self.err_log.addHandler(NullHandler())
 
         # Build the socket
-        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if ':' in self.addr:
+            listener = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        else:
+            listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         if not listener:
             self.err_log.error("Failed to get socket.")

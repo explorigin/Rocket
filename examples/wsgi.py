@@ -13,6 +13,6 @@ if __name__ == '__main__':
     log.addHandler(h)
     
     app_info = dict(wsgi_app=demo_app)
-    Rocket(interfaces=[('127.0.0.1', 80)],
+    Rocket(interfaces=[('127.0.0.1', 8000), ('::1', 8000)],
            method='wsgi',
            app_info=app_info).start()
