@@ -14,6 +14,6 @@ if __name__ == '__main__':
     
     app_info = dict(document_root=os.getcwd(),
                     display_index=True)
-    Rocket(interfaces=('127.0.0.1', 80),
+    Rocket(interfaces=('127.0.0.1', 8000),
            method='fs',
            app_info=app_info).start()

@@ -119,19 +119,18 @@ class WSGIWorker(Worker):
             self.size = int(h_set['content-length'])
         else:
             s = int(self.status.split(' ')[0])
-            if s < 200 or s not in (204, 205, 304):
-                if not self.chunked:
-                    if sections == 1:
-                        # Add a Content-Length header if it's not there already
-                        h_set['Content-Length'] = str(len(data))
-                        self.size = len(data)
-                    else:
-                        # If they sent us more than one section, we blow chunks
-                        h_set['Transfer-Encoding'] = 'Chunked'
-                        self.chunked = True
-                        if __debug__:
-                            self.err_log.debug('Adding header...'
-                                               'Transfer-Encoding: Chunked')
+            if (s < 200 or s not in (204, 205, 304)) and not self.chunked:
+                if sections == 1 or self.protocol != 'HTTP/1.1':
+                    # Add a Content-Length header because it's not there already
+                    self.size = len(data)
+                    h_set['Content-Length'] = str(self.size)
+                else:
+                    # If they sent us more than one section, we blow chunks
+                    h_set['Transfer-Encoding'] = 'Chunked'
+                    self.chunked = True
+                    if __debug__:
+                        self.err_log.debug('Adding header...'
+                                           'Transfer-Encoding: Chunked')
 
         if 'connection' not in h_set:
             # If the application did not provide a connection header, fill it in
@@ -147,7 +146,7 @@ class WSGIWorker(Worker):
                 h_set['Connection'] = 'close'
 
         # Close our connection if we need to.
-        self.closeConnection = h_set.get('connection', '').lower() == 'close'
+        self.closeConnection = h_set.get('connection', '') == 'close'
 
         # Build our output headers
         header_data = HEADER_RESPONSE % (self.status, str(h_set))

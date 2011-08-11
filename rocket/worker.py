@@ -53,7 +53,7 @@ $
 """, re.X)
 LOG_LINE = '%(client_ip)s - "%(request_line)s" - %(status)s %(size)s'
 RESPONSE = '''\
-HTTP/1.1 %s
+%s %s
 Content-Length: %i
 Content-Type: %s
 
@@ -84,6 +84,7 @@ class Worker(Thread):
         self.status = "200 OK"
         self.closeConnection = True
         self.request_line = ""
+        self.protocol = 'HTTP/1.1'
 
         # Request Log
         self.req_log = logging.getLogger('Rocket.Requests')
@@ -204,7 +205,8 @@ class Worker(Thread):
 
     def send_response(self, status):
         stat_msg = status.split(' ', 1)[1]
-        msg = RESPONSE % (status,
+        msg = RESPONSE % (self.protocol,
+                          status,
                           len(stat_msg),
                           'text/plain',
                           stat_msg)
@@ -212,17 +214,8 @@ class Worker(Thread):
             self.conn.sendall(b(msg))
         except socket.error:
             self.closeConnection = True
-            self.err_log.error('Tried to send "%s" to client but received socket'
-                           ' error' % status)
-
-    #def kill(self):
-    #    if self.isAlive() and hasattr(self, 'conn'):
-    #        try:
-    #            self.conn.shutdown(socket.SHUT_RDWR)
-    #        except socket.error:
-    #            info = sys.exc_info()
-    #            if info[1].args[0] != socket.EBADF:
-    #                self.err_log.debug('Error on shutdown: '+str(info))
+            msg = 'Tried to send "%s" to client but received socket error'
+            self.err_log.error(msg % status)
 
     def read_request_line(self, sock_file):
         self.request_line = ''
@@ -273,6 +266,7 @@ class Worker(Thread):
             if k == 'path':
                 req['path'] = r'%2F'.join([unquote(x) for x in re_SLASH.split(v)])
 
+        self.protocol = req['protocol']
         return req
 
     def _read_request_line_jython(self, d):

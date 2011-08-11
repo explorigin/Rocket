@@ -53,13 +53,29 @@ class Connection(object):
 
         self.socket.settimeout(SOCKET_TIMEOUT)
 
-        self.sendall = self.socket.sendall
         self.shutdown = self.socket.shutdown
         self.fileno = self.socket.fileno
         self.setblocking = self.socket.setblocking
         self.recv = self.socket.recv
         self.send = self.socket.send
         self.makefile = self.socket.makefile
+
+        if sys.platform == 'darwin':
+            self.sendall = self._sendall_darwin
+        else:
+            self.sendall = self.socket.sendall
+
+    def _sendall_darwin(self, buf):
+        pending = len(buf)
+        offset = 0
+        while pending:
+            try:
+                sent = self.socket.send(buf[offset:])
+                pending -= sent
+                offset += sent
+            except socket.error, e:
+                if e[0]!=errno.EAGAIN:
+                    raise 
 
 # FIXME - this is not ready for prime-time yet.
 #    def makefile(self, buf_size=BUF_SIZE):
