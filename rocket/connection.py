@@ -73,9 +73,12 @@ class Connection(object):
                 sent = self.socket.send(buf[offset:])
                 pending -= sent
                 offset += sent
-            except socket.error, e:
-                if e[0]!=errno.EAGAIN:
-                    raise 
+            except socket.error:
+                import errno
+                info = sys.exc_info()
+                if info[1].args[0] != errno.EAGAIN:
+                    raise
+        return offset
 
 # FIXME - this is not ready for prime-time yet.
 #    def makefile(self, buf_size=BUF_SIZE):
@@ -92,4 +95,3 @@ class Connection(object):
                 else:
                     pass
         self.socket.close()
-
