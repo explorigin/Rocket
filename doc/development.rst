@@ -2,17 +2,15 @@
 Developing
 ==========
 
-Rocket uses the Canonical's Launchpad_ for project management.  On the Rocket `project page`_ you can:
+Rocket uses the Github_ for project management.  On the Rocket `project page`_ you can:
 
 * `Browse the source`_
 * `Submit a bug report`_ or wishlist item.
-* `Download the latest version`_
 
-.. _Download the latest version: http://launchpad.net/rocket/+download
-.. _Browse the source: http://bazaar.launchpad.net/~tdfarrell/rocket/trunk/files
-.. _Submit a bug report: http://bugs.launchpad.net/rocket
-.. _Launchpad: http://launchpad.net
-.. _project page: http://launchpad.net/rocket
+.. _Browse the source: https://github.com/explorigin/Rocket
+.. _Submit a bug report: https://github.com/explorigin/Rocket/issues
+.. _Github: http://github.com
+.. _project page: https://github.com/explorigin/Rocket
 
 Building
 ========
@@ -27,7 +25,7 @@ Rocket can be built into three distributable forms:
 
     setup.py build_monolithic
 
-* EGG file - EGG files will be made for the cheeseshop once the naming slot is secured.  The command for building a package is::
+* EGG file - EGG files will be made for the cheeseshop.  The command for building a package is::
 
     setup.py build_egg
 
@@ -44,7 +42,7 @@ To do so, create a module in the methods subdirectory.  The module should specif
 Submitting Bugs
 ===============
 
-If you encounter a bug, please fill out a bug report on Launchpad (linked above).  Please include:
+If you encounter a bug, please fill out a bug report on Github (linked above).  Please include:
 
 * Version of Python used.
 * Version of Rocket used.

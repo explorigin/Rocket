@@ -22,10 +22,10 @@ packages = find_packages(exclude=['tests'])
 
 setup(name = "Rocket",
       version = VERSION,
-      description = "Modern, Multi-threaded, Comet-Friendly WSGI Web Server",
+      description = "Modern, multi-threaded and extensible web server.",
       author = "Timothy Farrell",
       author_email = "explorigin@gmail.com",
-      url = "http://www.launchpad.net/rocket",
+      url = "https://github.com/explorigin/Rocket",
       packages = packages,
       license = "MIT License",
       package_data = {'':['*.py', '*.txt']},
@@ -51,6 +51,5 @@ If you're searching for the rocket GAE framework, email mjpizz+rocket@gmail.com
       entry_points = {
         "distutils.commands": [
             "build_monolithic = monolithic:build_monolithic",
-            "build_release = release:build_release",
         ],
     })

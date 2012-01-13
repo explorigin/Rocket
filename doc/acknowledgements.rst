@@ -9,4 +9,3 @@ Acknowledgements
 * CherryPy team - For `WSGIserver <http://www.cherrypy.org/browser/trunk/cherrypy/wsgiserver>`_ since it served as a guide for some of this project.
 * Matt Pizzimenti - For relinquishing the "rocket" spot on PyPI.  `Email Matt <mailto:mjpizz+rocket@gmail.com>`_ for information about the Rocket GAE Framework.
 * Guido van Rossum and the Python Foundation- For `Python <http://www.python.org>`_, the best scripting language.
-* Canonical - For `Ubuntu <http://www.ubuntu.com>`_, `Bazaar <http://www.bazaar-vcs.org>`_ and `Launchpad <http://launchpad.net>`_

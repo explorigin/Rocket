@@ -6,7 +6,7 @@ Methods
 Rocket uses *Methods* as a way to serve different types of content.  Currently there are two methods:
 
 * `fs`_ - Serves files from a specified directory.
-* `wsgi`_ - Serves a `WSGI <http://www.python.org/dev/peps/pep-0333/>`_-compliant application.
+* `wsgi`_ - Serves a `WSGI <http://www.python.org/dev/peps/pep-3333/>`_-compliant application.
 
 .. _wsgiworker:
 
@@ -26,7 +26,7 @@ The *app_info* property for the WSGIWorker should be a dictionary containing the
 
 .. _WSGIWorker_environment_variables:
 
-Rocket provides the following environment variables to applications that it runs in addition to WSGI's `standard environment variables <http://www.python.org/dev/peps/pep-0333/#environ-variables>`_:
+Rocket provides the following environment variables to applications that it runs in addition to WSGI's `standard environment variables <http://www.python.org/dev/peps/pep-3333/#environ-variables>`_:
 
 * **REMOTE_PORT** - the port from which the client computer is connecting.
 
