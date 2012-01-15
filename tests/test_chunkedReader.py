@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2010 Timothy Farrell
+# Copyright (c) 2012 Timothy Farrell
 #
 # See the included LICENSE.txt file for licensing details.
 
