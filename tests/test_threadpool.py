@@ -12,6 +12,10 @@ try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
+try:
+    from functools import reduce
+except ImportError:
+    pass
 
 # Import Custom Modules
 from rocket import threadpool, worker
@@ -140,7 +144,7 @@ class ThreadPoolTest(unittest.TestCase):
 
         self.tp.dynamic_resize()
 
-        self.assert_(self.min_threads < len(self.tp.threads) < self.max_threads + 1)
+        self.assertTrue(self.min_threads < len(self.tp.threads) < self.max_threads + 1)
 
     def tearDown(self):
         try:

@@ -12,7 +12,7 @@ import socket
 import logging
 import unittest
 # Import Custom Modules
-from rocket import Rocket, connection, SOCKET_TIMEOUT
+from rocket import Rocket, connection, SOCKET_TIMEOUT, b
 
 # Constants
 SERVER_PORT_START = 44450
@@ -51,7 +51,7 @@ class ConnectionTest(unittest.TestCase):
 
         members = ["close", "client_addr", "server_port", "ssl", "socket", "start_time"]
         for m in members:
-            self.assert_(hasattr(c, m),
+            self.assertTrue(hasattr(c, m),
                          msg="Connection object does not have %s " % m)
 
     def testSocketTimeout(self):
@@ -63,7 +63,7 @@ class ConnectionTest(unittest.TestCase):
     def testSocketRecv(self):
         c = connection.Connection(*(self.server.active_queue.get(timeout=10)))
 
-        SENT_DATA = "this is a test"
+        SENT_DATA = b("this is a test")
         self.sock.send(SENT_DATA)
 
         data = c.recv(len(SENT_DATA))
@@ -73,7 +73,7 @@ class ConnectionTest(unittest.TestCase):
     def testSocketSend(self):
         c = connection.Connection(*(self.server.active_queue.get(timeout=10)))
 
-        RECVD_DATA = "this is a test"
+        RECVD_DATA = b("this is a test")
         c.send(RECVD_DATA)
 
         data = self.sock.recv(len(RECVD_DATA))
@@ -83,11 +83,11 @@ class ConnectionTest(unittest.TestCase):
     def testFileLikeSocketRead(self):
         c = connection.Connection(*(self.server.active_queue.get(timeout=10)))
 
-        SENT_DATA = "this is a test"
+        SENT_DATA = b("this is a test")
         self.sock.send(SENT_DATA)
 
         f = c.makefile()
-        data = f.read(len(SENT_DATA))
+        data = b(f.read(len(SENT_DATA)))
 
         self.assertEqual(data, SENT_DATA)
 
@@ -96,23 +96,25 @@ class ConnectionTest(unittest.TestCase):
     def testFileLikeSocketReadline(self):
         c = connection.Connection(*(self.server.active_queue.get(timeout=10)))
 
-        SENT_DATA = """this is a test\r\nthis is another line\r\n"""
+        SENT_DATA = b("""this is a test\nthis is another line\n""")
         self.sock.send(SENT_DATA)
 
         time.sleep(0.25)
 
         f = c.makefile()
 
-        for l in SENT_DATA.splitlines():
-            data = f.readline()
-            self.assertEqual(data, l+"\r\n")
-
-        f.close()
+        try:
+            for l in SENT_DATA.splitlines():
+                data = b(f.readline())
+                self.assertEqual(data, l+b("\n"))
+        finally:
+            f.close()
+            c.close()
 
     def testFileLikeSocketReadlines(self):
         c = connection.Connection(*(self.server.active_queue.get(timeout=10)))
 
-        SENT_DATA = """this is a test\r\nthis is another line\r\n"""
+        SENT_DATA = b("""this is a test\nthis is another line\n""")
         self.sock.send(SENT_DATA)
         self.sock.close()
 
@@ -120,12 +122,13 @@ class ConnectionTest(unittest.TestCase):
 
         f = c.makefile()
 
-        sent_lines = [x + '\r\n' for x in SENT_DATA.splitlines()]
-        data_lines = f.readlines()
+        sent_lines = [x + b('\n') for x in SENT_DATA.splitlines()]
+        data_lines = [b(x) for x in f.readlines()]
 
         self.assertEqual(sent_lines, data_lines)
 
         f.close()
+        c.close()
 
 if __name__ == '__main__':
     unittest.main()

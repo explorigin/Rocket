@@ -16,19 +16,19 @@ except ImportError:
     from Queue import Queue
 
 try:
-    from io import BytesIO as StringIO
+    from io import BytesIO as BytesIO
 except ImportError:
     try:
-        from cStringIO import StringIO
+        from cStringIO import StringIO as BytesIO
     except ImportError:
-        from StringIO import StringIO
+        from StringIO import StringIO as BytesIO
 
 # Import Custom Modules
-from rocket import worker, IS_JYTHON
+from rocket import worker, IS_JYTHON, b
 
 # Constants
 SERVER_PORT = 45451 if IS_JYTHON else -1
-SAMPLE_HEADERS = '''\
+SAMPLE_HEADERS = b('''\
 GET /dumprequest HTTP/1.1
 Host: djce.org.uk
 User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.12) Gecko/20101027 Ubuntu/10.04 (lucid) Firefox/3.6.12
@@ -39,7 +39,7 @@ Accept-Encoding: gzip,deflate
 Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
 Keep-Alive: 115
 Connection: keep-alive
-Referer: http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15'''
+Referer: http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15''')
 HEADER_DICT = {
     'HOST': 'djce.org.uk',
     'USER_AGENT': 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.12) Gecko/20101027 Ubuntu/10.04 (lucid) Firefox/3.6.12',
@@ -51,11 +51,11 @@ HEADER_DICT = {
     'CONNECTION': 'keep-alive',
     'REFERER': 'http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15'}
 SENDALL_VALUES = [
-    '''HTTP/1.1 200 OK\nContent-Length: 2\nContent-Type: text/plain\n\nOK\n''',
-    '''HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n''',
+    b('''HTTP/1.1 200 OK\nContent-Length: 2\nContent-Type: text/plain\n\nOK\n'''),
+    b('''HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n'''),
 ]
 REQUEST_DICT = {
-    'GET / HTTP/1.1': \
+    b('GET / HTTP/1.1'): \
         dict(path='/',
             query_string='',
             scheme='',
@@ -63,7 +63,7 @@ REQUEST_DICT = {
             method='GET',
             protocol='HTTP/1.1'
         ),
-    'GET /dir1/dir2%2Fdir3/file1.html?a=1&b=2 HTTP/1.1': \
+    b('GET /dir1/dir2%2Fdir3/file1.html?a=1&b=2 HTTP/1.1'): \
         dict(path='/dir1/dir2%2Fdir3/file1.html',
             query_string='a=1&b=2',
             scheme='',
@@ -71,7 +71,7 @@ REQUEST_DICT = {
             method='GET',
             protocol='HTTP/1.1'
         ),
-    'POST https://example.com/file%201.html HTTP/1.0': \
+    b('POST https://example.com/file%201.html HTTP/1.0'): \
         dict(path='/file 1.html',
             query_string='',
             scheme='https',
@@ -79,7 +79,7 @@ REQUEST_DICT = {
             method='POST',
             protocol='HTTP/1.0'
         ),
-    'OPTIONS * HTTP/1.0': \
+    b('OPTIONS * HTTP/1.0'): \
         dict(path='*',
             query_string='',
             scheme='',
@@ -89,13 +89,13 @@ REQUEST_DICT = {
         ),
 }
 BAD_REQUESTS = [
-    'GET /dir1/dir2/file1.html?a=1&b=2 SPDY/1.1', # Bad protocol
-    'GET /dir1/dir2/file1.html?a=1&b=2HTTP/1.1', # Bad format
-    'GET/dir1/dir2/file1.html?a=1&b=2 HTTP/1.1', # Bad format
-    'GET /dir1/dir2/file1.html?a=1&b=2 HTTP/0.9', # Bad protocol
-    'GET file1.html HTTP/1.1', # Bad path
-    'OPTIONS *.* HTTP/1.0', # Bad path
-    'REMOVE /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1', # Bad method
+    b('GET /dir1/dir2/file1.html?a=1&b=2 SPDY/1.1'), # Bad protocol
+    b('GET /dir1/dir2/file1.html?a=1&b=2HTTP/1.1'), # Bad format
+    b('GET/dir1/dir2/file1.html?a=1&b=2 HTTP/1.1'), # Bad format
+    b('GET /dir1/dir2/file1.html?a=1&b=2 HTTP/0.9'), # Bad protocol
+    b('GET file1.html HTTP/1.1'), # Bad path
+    b('OPTIONS *.* HTTP/1.0'), # Bad path
+    b('REMOVE /dir1/dir2/file1.html?a=1&b=2 HTTP/1.1'), # Bad method
 ]
 
 class FakeConn:
@@ -108,7 +108,7 @@ class FakeConn:
 
     def sendall(self, data):
         self.sendData = data
-        if data.lower().strip().endswith("error"):
+        if data.lower().strip().endswith(b("error")):
             raise socket.error
         else:
             assert data in SENDALL_VALUES
@@ -129,7 +129,7 @@ class WorkerTest(unittest.TestCase):
         self.starttuple = (socket.socket(), ('127.0.0.1', SERVER_PORT))
 
     def testRunApp(self):
-        self.assert_(self.worker.closeConnection,
+        self.assertTrue(self.worker.closeConnection,
                      msg="Worker not starting with a fresh connection")
 
         self.worker.closeConnection = False
@@ -138,31 +138,31 @@ class WorkerTest(unittest.TestCase):
 
         self.assertRaises(NotImplementedError, self.worker.run_app, self.worker.conn)
 
-        self.assert_(self.worker.closeConnection,
+        self.assertTrue(self.worker.closeConnection,
                      msg="Worker.run_app() did not set closeConnection")
 
     def testSendReponse(self):
         self.worker.conn = FakeConn()
 
-        self.assert_(self.worker.closeConnection,
+        self.assertTrue(self.worker.closeConnection,
                      msg="Worker not starting with a fresh connection")
 
         self.worker.closeConnection = False
 
         self.worker.send_response("200 OK")
 
-        self.assert_(not self.worker.closeConnection,
+        self.assertTrue(not self.worker.closeConnection,
                      msg="Worker.send_response() set closeConnection when it shouldn't have")
 
         self.worker.closeConnection = False
 
         self.worker.send_response("500 Server Error")
 
-        self.assert_(self.worker.closeConnection,
+        self.assertTrue(self.worker.closeConnection,
                      msg="Worker.send_response() did not set closeConnection when it shouldn't have")
 
     def testReadHeaders(self):
-        headersBuf = StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()[1:]) + '\r\n\r\n')
+        headersBuf = BytesIO(b('\r\n').join(SAMPLE_HEADERS.splitlines()[1:]) + b('\r\n\r\n'))
         headers = self.worker.read_headers(headersBuf)
 
         for header_name in HEADER_DICT.keys():
@@ -171,10 +171,8 @@ class WorkerTest(unittest.TestCase):
     def testReadRequestLine(self):
         self.worker.conn = FakeConn()
         for reqline, resdict in REQUEST_DICT.items():
-            try:
-                result = self.worker.read_request_line(StringIO(reqline + '\r\n'))
-            except:
-                self.assert_(False, msg="Received BadRequest Exception for:" + reqline)
+            result = self.worker.read_request_line(BytesIO(reqline + b('\r\n')))
+
             for key in result:
                 self.assertEqual(result[key], resdict[key])
 
@@ -183,7 +181,7 @@ class WorkerTest(unittest.TestCase):
         for reqline in BAD_REQUESTS:
             self.assertRaises(worker.BadRequest,
                               self.worker.read_request_line,
-                              StringIO(reqline + '\r\n'))
+                              BytesIO(reqline + b('\r\n')))
 
     def testHandleError_SSLTimeout(self):
         m = self.worker._handleError
@@ -192,13 +190,13 @@ class WorkerTest(unittest.TestCase):
         self.worker.closeConnection = False
 
         # Test SSL Socket Timeout
-        vars = FakeVars()
-        vars.args.append("timed out")
-        self.assert_(m(worker.SSLError, vars, None))
+        vars = worker.SSLError("timed out")
+
+        self.assertTrue(m(worker.SSLError, vars, None))
         self.assertEqual(self.worker.closeConnection, False)
 
         conn = self.monitor_queue.get()
-        self.assert_(conn is self.worker.conn)
+        self.assertTrue(conn is self.worker.conn)
 
     def testHandleError_SocketTimeout(self):
         m = self.worker._handleError
@@ -207,11 +205,11 @@ class WorkerTest(unittest.TestCase):
         self.worker.closeConnection = False
 
         # Test Socket Timeout
-        self.assert_(m(worker.SocketTimeout, None, None))
+        self.assertTrue(m(worker.SocketTimeout, None, None))
         self.assertEqual(self.worker.closeConnection, False)
 
         conn = self.monitor_queue.get()
-        self.assert_(conn is self.worker.conn)
+        self.assertTrue(conn is self.worker.conn)
 
     def testHandleError_BadRequest(self):
         m = self.worker._handleError
@@ -220,7 +218,7 @@ class WorkerTest(unittest.TestCase):
         self.worker.closeConnection = False
 
         # Test Bad Request
-        self.assert_(m(worker.BadRequest, None, None))
+        self.assertTrue(m(worker.BadRequest, None, None))
         self.assertEqual(self.worker.closeConnection, True)
 
     def testHandleError_SocketClosed(self):
@@ -230,7 +228,7 @@ class WorkerTest(unittest.TestCase):
         self.worker.closeConnection = False
 
         # Test Socket Closed
-        self.assert_(not m(worker.SocketClosed, None, None))
+        self.assertTrue(not m(worker.SocketClosed, None, None))
         self.assertEqual(self.worker.closeConnection, True)
 
     def testHandleError_SocketError(self):
@@ -243,7 +241,7 @@ class WorkerTest(unittest.TestCase):
         self.worker.closeConnection = False
 
         # Test SocketError
-        self.assert_(not m(socket.error, vars, None))
+        self.assertTrue(not m(socket.error, vars, None))
         self.assertEqual(self.worker.closeConnection, True)
         self.assertEqual(self.worker.status, "200 OK")
 
@@ -264,14 +262,13 @@ class WorkerTest(unittest.TestCase):
     def testHandleError_UnknownError(self):
         m = self.worker._handleError
 
-        vars = FakeVars()
-        vars.args.append("a")
+        vars = RuntimeError("Test Error")
 
         self.worker.conn = FakeConn()
         self.worker.closeConnection = False
 
         # Test Unknown Error
-        self.assert_(not m(RuntimeError, vars, None))
+        self.assertTrue(not m(RuntimeError, vars, None))
         self.assertEqual(self.worker.closeConnection, True)
 
     def testRunStopSentryValue(self):
@@ -294,10 +291,10 @@ class WorkerTest(unittest.TestCase):
         self.assertEqual(None, self.worker.run())
 
         # Test that it closed the connection
-        self.assert_(self.worker.closeConnection)
+        self.assertTrue(self.worker.closeConnection)
 
         # Test that it sent 400 bad request
-        self.assertEqual(conn.sendData, 'HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n')
+        self.assertEqual(conn.sendData, b('HTTP/1.1 400 Bad Request\nContent-Length: 11\nContent-Type: text/plain\n\nBad Request\n'))
 
     def testRun_HTTPConnection(self):
         conn = FakeConn()
@@ -312,9 +309,9 @@ class WorkerTest(unittest.TestCase):
         self.assertEqual(None, self.worker.run())
 
         # Test that it closed the connection
-        self.assert_(self.worker.closeConnection)
+        self.assertTrue(self.worker.closeConnection)
 
-        self.assertEqual(conn.sendData, 'HTTP/1.1 500 Server Error\nContent-Length: 12\nContent-Type: text/plain\n\nServer Error\n')
+        self.assertEqual(conn.sendData, b('HTTP/1.1 500 Server Error\nContent-Length: 12\nContent-Type: text/plain\n\nServer Error\n'))
 
     def tearDown(self):
         del self.worker

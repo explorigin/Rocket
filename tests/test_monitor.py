@@ -17,7 +17,7 @@ except ImportError:
     from Queue import Queue
 
 # Import Custom Modules
-from rocket import monitor, listener, connection, threadpool, worker
+from rocket import monitor, listener, connection, threadpool, worker, b
 
 # Constants
 SERVER_PORT = 45454
@@ -65,7 +65,7 @@ class MonitorTest(unittest.TestCase):
                                        self.timeout,
                                        self.tp)
 
-        self.assert_(not self.monitor.active)
+        self.assertTrue(not self.monitor.active)
 
     def testMonitor(self):
         self.testNotActive() # create self.monitor
@@ -100,7 +100,7 @@ class MonitorTest(unittest.TestCase):
 
         # Send something to the socket to see if it gets put back on the active
         # queue.
-        sock.send("test data")
+        sock.send(b("test data"))
         sock.close()
 
         # Give monitor a chance to see it
@@ -109,13 +109,13 @@ class MonitorTest(unittest.TestCase):
         # Finally check to make sure that it's on the active queue
         self.assertEqual(self.active_queue.qsize(), 1)
         conn2 = self.active_queue.get()
-        self.assert_(conn is conn2)
+        self.assertTrue(conn is conn2)
 
     def tearDown(self):
         try:
             self.listener.ready = False
             self.listener.join(5)
-            self.assert_(not self.listener.isAlive())
+            self.assertTrue(not self.listener.isAlive())
         except:
             pass
 

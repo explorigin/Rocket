@@ -19,16 +19,20 @@ class RocketInitTest(unittest.TestCase):
     def testMembers(self):
         members = ["VERSION", "SERVER_NAME", "SERVER_SOFTWARE", "HTTP_SERVER_SOFTWARE", "BUF_SIZE", "IS_JYTHON", "IGNORE_ERRORS_ON_CLOSE", "DEFAULT_LISTEN_QUEUE_SIZE", "DEFAULT_MIN_THREADS", "DEFAULT_MAX_THREADS", "DEFAULTS", "PY3K", "u", "b", "Rocket", "CherryPyWSGIServer"]
         for m in members:
-            self.assert_(hasattr(rocket, m),
+            self.assertTrue(hasattr(rocket, m),
                          msg="rocket module does not have %s" % m)
 
     def testUnicode(self):
-        self.assertEquals(rocket.u('abc'), eval("u'abc'"))
-        self.assertEquals(type(rocket.u('abc')), type(eval("u'abc'")))
+        if PY3K:
+            self.skipTest("Not a valid test in Python 3")
+        self.assertEqual(rocket.u('abc'), eval("u'abc'"))
+        self.assertEqual(type(rocket.u('abc')), type(eval("u'abc'")))
 
     def testBytes(self):
-        self.assertEquals(rocket.b('abc'), 'abc')
-        self.assertEquals(type(rocket.b('abc')), type('abc'))
+        if PY3K:
+            self.skipTest("Not a valid test in Python 3")
+        self.assertEqual(rocket.b('abc'), 'abc')
+        self.assertEqual(type(rocket.b('abc')), type('abc'))
 
 
 if __name__ == '__main__':

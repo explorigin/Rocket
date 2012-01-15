@@ -49,10 +49,10 @@ class ListenerTest(unittest.TestCase):
                                      PRIV_KEY_FILE,
                                      PUB_KEY_FILE)
             if not os.path.exists(PRIV_KEY_FILE):
-                print "Could not find private key file: " + os.path.abspath(PRIV_KEY_FILE)
+                print("Could not find private key file:", os.path.abspath(PRIV_KEY_FILE))
                 self.has_ssl = False
             if not os.path.exists(PUB_KEY_FILE):
-                print "Could not find public key file: " + os.path.abspath(PUB_KEY_FILE)
+                print("Could not find public key file:", os.path.abspath(PUB_KEY_FILE))
                 self.has_ssl = False
 
     def _waitForEqual(self, a, b):
@@ -77,13 +77,13 @@ class ListenerTest(unittest.TestCase):
                                           5,
                                           self.active_queue)
 
-        self.assert_(self.listener.ready)
+        self.assertTrue(self.listener.ready)
 
         if self.has_ssl:
             self.sec_listener = listener.Listener(self.secure_interface,
                                                   5,
                                                   self.active_queue)
-            self.assert_(self.sec_listener.ready,
+            self.assertTrue(self.sec_listener.ready,
                          msg="Secure listener failed to enter ready state.")
 
     def testNotReady(self):
@@ -96,13 +96,13 @@ class ListenerTest(unittest.TestCase):
         # Give thread a chance to die
         self._waitForEqual(self.listener.isAlive(), False)
 
-        self.assert_(not self.listener.isAlive())
+        self.assertTrue(not self.listener.isAlive())
 
     def testListen(self):
         self.testReady() # create Listener
         self.listener.start()
 
-        self.assert_(self.listener.isAlive())
+        self.assertTrue(self.listener.isAlive())
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -116,23 +116,23 @@ class ListenerTest(unittest.TestCase):
 
     def testWrapSocket(self):
         if not self.has_ssl:
-            print "ssl module not available"
+            print("ssl module not available")
             return
 
         self.testReady() # create Listener
 
-        self.assert_(self.sec_listener.secure,
+        self.assertTrue(self.sec_listener.secure,
                      msg="must test on an HTTPS socket")
 
         sock = self.sec_listener.wrap_socket(self.sec_listener.listener)
 
-        self.assert_(isinstance(sock, ssl.SSLSocket))
+        self.assertTrue(isinstance(sock, ssl.SSLSocket))
 
     def tearDown(self):
         try:
             self.listener.ready = False
             self.listener.join(5)
-            self.assert_(not self.listener.isAlive())
+            self.assertTrue(not self.listener.isAlive())
         except:
             pass
 
@@ -147,7 +147,7 @@ class ListenerTest(unittest.TestCase):
             try:
                 self.sec_listener.ready = False
                 self.sec_listener.join(5)
-                self.assert_(not self.sec_listener.isAlive())
+                self.assertTrue(not self.sec_listener.isAlive())
             except:
                 pass
 

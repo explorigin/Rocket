@@ -31,10 +31,11 @@ except ImportError:
 from wsgiref.simple_server import demo_app
 
 # Import Custom Modules
+from rocket import b
 from rocket.methods import wsgi
 
 # Constants
-SAMPLE_HEADERS = '''\
+SAMPLE_HEADERS = b('''\
 GET /dumprequest HTTP/1.1
 Host: djce.org.uk
 User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.12) Gecko/20101027 Ubuntu/10.04 (lucid) Firefox/3.6.12
@@ -45,7 +46,7 @@ Accept-Encoding: gzip,deflate
 Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
 Keep-Alive: 115
 Connection: keep-alive
-Referer: http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15'''
+Referer: http://www.google.com/custom?hl=en&client=pub-9300639326172081&cof=FORID%3A13%3BAH%3Aleft%3BCX%3AUbuntu%252010%252E04%3BL%3Ahttp%3A%2F%2Fwww.google.com%2Fintl%2Fen%2Fimages%2Flogos%2Fcustom_search_logo_sm.gif%3BLH%3A30%3BLP%3A1%3BLC%3A%230000ff%3BVLC%3A%23663399%3BDIV%3A%23336699%3B&adkw=AELymgUf3P4j5tGCivvOIh-_XVcEYuoUTM3M5ETKipHcRApl8ocXgO_F5W_FOWHqlk4s4luYT_xQ10u8aDk2dEwgEYDYgHezJRTj7dx64CHnuTwPVLVChMA&channel=6911402799&q=http+request+header+sample&btnG=Search&cx=partner-pub-9300639326172081%3Ad9bbzbtli15''')
 HEADER_DICT = {
     'host': 'djce.org.uk',
     'user_agent': 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.12) Gecko/20101027 Ubuntu/10.04 (lucid) Firefox/3.6.12',
@@ -70,11 +71,11 @@ class FakeConn:
 
     def sendall(self, data):
         self.sendData = data
-        if data.lower().strip().endswith("error"):
+        if data.lower().strip().endswith(b("error")):
             raise socket.error
 
     def makefile(mode="rb", buf_size=1024):
-        return StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()) + '\r\n\r\n')
+        return StringIO(b('\r\n').join(SAMPLE_HEADERS.splitlines()) + b('\r\n\r\n'))
 
     def close(self):
         self.closed = True
@@ -145,22 +146,22 @@ class WSGIWorkerTest(unittest.TestCase):
 
         self.worker.conn = conn
 
-        headersBuf = StringIO('\r\n'.join(SAMPLE_HEADERS.splitlines()) + '\r\n\r\n')
+        headersBuf = StringIO(b('\r\n').join(SAMPLE_HEADERS.splitlines()) + b('\r\n\r\n'))
         env = self.worker.build_environ(headersBuf, conn)
 
         for name, reqd, validator in REQUIRED_VARS:
             if reqd:
-                self.assert_(name in env,
+                self.assertTrue(name in env,
                              msg="Missing Environment variable: " + name)
             if name in env:
                 valid = validator
                 if isinstance(valid, str):
                     valid = re.compile(valid)
                 if isinstance(valid, (types.FunctionType, types.MethodType)):
-                    self.assert_(valid(env[name]),
+                    self.assertTrue(valid(env[name]),
                                  msg="%s=\"%s\" does not validate." % (name, env[name]))
                 else:
-                    self.assert_(valid.match(env[name]),
+                    self.assertTrue(valid.match(env[name]),
                                  msg="%s=\"%s\" does not validate." % (name, env[name]))
 
     def testStartResponse(self):
@@ -194,7 +195,7 @@ class WSGIWorkerTest(unittest.TestCase):
                                          [('Content-Type', 'text/plain'),
                                           ('Content-Length', '16')])
 
-        self.assert_(callable(out),
+        self.assertTrue(callable(out),
                      msg="WSGIWorker.start_response() did not return a callable.")
 
     def testApplicationReturnValueTests(self):
@@ -213,7 +214,7 @@ class WSGIWorkerTest(unittest.TestCase):
 
         output = self.worker.app(environ, self.worker.start_response)
 
-        self.assert_(hasattr(output, "__iter__") or hasattr(output, "__next__"),
+        self.assertTrue(hasattr(output, "__iter__") or hasattr(output, "__next__"),
                      msg="Value returned by WSGI app is not iterable")
 
 
@@ -240,7 +241,7 @@ class WSGIWorkerTest(unittest.TestCase):
             if data:
                 self.worker.write(data, len(data))
 
-        self.assertEqual(''.join(output), conn.sendData)
+        self.assertEqual(b('').join(output), conn.sendData)
 
     def testReturnedValueLength(self):
         """If a call to len(iterable) succeeds, the server must be able to rely
@@ -278,9 +279,9 @@ class WSGIWorkerTest(unittest.TestCase):
 
         output = self.worker.app(environ, self.fakeStart)
 
-        temp = iter(output).next()
+        temp = next(iter(output))
 
-        self.assert_(self.fakeStartCalled,
+        self.assertTrue(self.fakeStartCalled,
                      msg="start_response was not called before the first iterator.")
 
 
