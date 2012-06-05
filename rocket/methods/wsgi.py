@@ -178,6 +178,8 @@ class WSGIWorker(Worker):
                     self.conn.sendall(b('%x\r\n%s\r\n' % (len(data), data)))
                 else:
                     self.conn.sendall(data)
+            except socket.timeout:
+                self.closeConnection = True
             except socket.error:
                 # But some clients will close the connection before that
                 # resulting in a socket error.
