@@ -24,6 +24,7 @@ from .listener import Listener
 
 # Setup Logging
 log = logging.getLogger('Rocket')
+log.setLevel(logging.WARNING)
 log.addHandler(NullHandler())
 
 class Rocket(object):
