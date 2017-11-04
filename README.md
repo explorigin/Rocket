@@ -1,4 +1,4 @@
-Rocket 1.2.4
+Rocket 1.2.7
 ============
 
 _Modern, multi-threaded and extensible web server._

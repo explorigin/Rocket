@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of the Rocket Web Server
-# Copyright (c) 2009 Timothy Farrell
+# Copyright (c) 2017 Timothy Farrell
 
 from distribute_setup import use_setuptools
 use_setuptools()
@@ -31,7 +31,7 @@ setup(name = "Rocket",
       package_data = {'':['*.py', '*.txt']},
       include_package_data = True,
       install_requires=['distribute'],
-      long_description = """The Rocket web server is a server designed to handle the increased needs of modern web applications implemented in pure Python. It can serve WSGI applications and middleware currently with the ability to be extended to handle different types of networked request-response jobs. Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool). Rocket is similar in purpose to Cherrypy's Wsgiserver but with added flexibility, speed and concurrency.
+      long_description = """The Rocket web server is a server designed to handle the increased needs of modern web applications implemented in pure Python. It can serve WSGI applications and middleware currently with the ability to be extended to handle different types of networked request-response jobs. Rocket runs on cPython 2.5-3.x and Jython 2.5 (without the need to run through the 2to3 translation tool). Rocket is similar in purpose to Cherrypy's Wsgiserver but with added flexibility and concurrency.
 
 Rocket Documentation is viewable at http://packages.python.org/rocket .
 
