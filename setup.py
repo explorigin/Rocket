@@ -4,9 +4,7 @@
 # This file is part of the Rocket Web Server
 # Copyright (c) 2017 Timothy Farrell
 
-from distribute_setup import use_setuptools
-use_setuptools()
-from setuptools import setup, find_packages
+from distutils.core import setup
 
 import os
 import sys
@@ -18,7 +16,6 @@ if sys.version_info < (2, 5):
 v = open(os.path.join(os.path.dirname(__file__), 'rocket', '__init__.py'))
 VERSION = re.compile(r".*VERSION = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
-packages = find_packages(exclude=['tests'])
 
 setup(name = "Rocket",
       version = VERSION,
@@ -26,7 +23,7 @@ setup(name = "Rocket",
       author = "Timothy Farrell",
       author_email = "explorigin@gmail.com",
       url = "https://github.com/explorigin/Rocket",
-      packages = packages,
+      packages = ['rocket'],
       license = "MIT License",
       package_data = {'':['*.py', '*.txt']},
       include_package_data = True,
